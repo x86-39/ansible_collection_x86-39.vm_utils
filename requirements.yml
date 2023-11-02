@@ -1,5 +1,8 @@
 ---
-collections: []
+collections:
+  - name: cloud.terraform
+    type: git
+    source: https://github.com/ansible-community/cloud.terraform.git
 
 roles: []
 ...

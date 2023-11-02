@@ -1,0 +1,11 @@
+ancestor: null
+releases:
+  1.0.0:
+    changes:
+      major_changes:
+      - add terraform_vms playbook
+      - add vyos_qcow2_image role
+      release_summary: initial release
+    fragments:
+    - main.yml
+    release_date: '2023-11-02'

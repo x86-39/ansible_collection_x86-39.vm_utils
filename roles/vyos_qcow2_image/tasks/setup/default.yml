@@ -1,0 +1,83 @@
+---
+- name: Check if image already exists
+  ansible.builtin.stat:
+    path: "/tmp/vyos-{{ vm_utils_vyos_qcow2_image_version }}-cloud-init-{{ vm_utils_vyos_qcow2_image_size_gb }}G-qemu.qcow2"
+  register: vyos_image
+
+- name: When image doesn't exist
+  when: not vyos_image.stat.exists
+  block:
+
+    - name: Find latest VyOS version from GitHub Releases
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/vyos/vyos-rolling-nightly-builds/releases/latest
+        return_content: true
+      changed_when: false
+      register: vyos_version
+      when: vm_utils_vyos_qcow2_base_iso_tag is not defined
+
+    - name: Set VyOS version
+      ansible.builtin.set_fact:
+        vyos_tag: "{{ vyos_version.json.tag_name }}"
+      when: vm_utils_vyos_qcow2_base_iso_tag is not defined
+
+    - name: Set latest ISO url
+      ansible.builtin.set_fact:
+        _vm_utils_vyos_qcow2_latest_iso_url: |
+          https://github.com/vyos/vyos-rolling-nightly-builds/releases/download/{{ vyos_tag }}/vyos-{{ vyos_tag }}-amd64.iso
+
+    - name: Echo latest ISO url
+      ansible.builtin.debug:
+        msg: "{{ _vm_utils_vyos_qcow2_latest_iso_url }}"
+
+    - name: Download VyOS VM images git repository
+      ansible.builtin.git:
+        repo: https://github.com/vyos/vyos-vm-images
+        dest: /tmp/vyos-vm-images
+        version: current
+        force: true
+      when: true
+
+    - name: Remove instances of deprecated args warn from roles/install-grub/tasks/main.yml
+      ansible.builtin.replace:
+        path: /tmp/vyos-vm-images/roles/install-grub/tasks/main.yml
+        regexp: '{{ item }}:.*'
+        replace: ''
+      when: true
+      loop:
+        - args
+        - creates
+        - warn
+
+    - name: Prompt for sudo password
+      ansible.builtin.pause:
+        prompt: "Enter sudo password to build VyOS image"
+        echo: false
+      delegate_to: localhost
+      run_once: true
+      register: vm_utils_vyos_qcow2_image_sudo_pass
+      when: ansible_become_password is not defined
+
+    - name: Set sudo password
+      ansible.builtin.set_fact:
+        vm_utils_vyos_qcow2_image_sudo_pass: "{{ vm_utils_vyos_qcow2_image_sudo_pass.user_input | default(omit) }}"
+        ansible_become_password: "{{ vm_utils_vyos_qcow2_image_sudo_pass }}"
+      delegate_to: localhost
+      delegate_facts: true
+      run_once: true
+      when: vm_utils_vyos_qcow2_image_sudo_pass is defined
+
+    - name: Run Ansible Playbook to compile qcow2 with Cloud Init
+      ansible.builtin.command:
+        ansible-playbook -b -e "ansible_become_password={{ ansible_become_password }}" \
+          qemu.yml \
+          -e disk_size={{ vm_utils_vyos_qcow2_image_size_gb }} \
+          -e vyos_version={{ vm_utils_vyos_qcow2_image_version }} \
+          -e cloud_init=true \
+          -e cloud_init_ds=NoCloud \
+          -e "vyos_iso_url={{ vm_utils_vyos_qcow2_base_iso_url }}"
+      args:
+        chdir: /tmp/vyos-vm-images
+        creates: "/tmp/vyos-{{ vm_utils_vyos_qcow2_image_version }}-cloud-init-{{ vm_utils_vyos_qcow2_image_size_gb }}G-qemu.qcow2"
+
+...

@@ -1,0 +1,183 @@
+---
+## VARS
+# vm_utils_terraform_vms_state (alias=state) - The state of the VMs. "create" creates the VMs, "recreate" removes the VMs and creates them again, "destroy" removes the VMs and aborts the play. Default: "create"
+# vm_utils_terraform_vms_hosts (alias=etchosts) - Whether to add hostnames to /etc/hosts. Default: false
+# vm_utils_terraform_vms_project_path - The path to the Terraform project. Default: "{{ lookup('env', 'PWD') + '/terraform' }}"
+# vm_utils_terraform_vms_vars_files - The path to the Terraform variables files. Default: "{{ lookup('env', 'PWD') + '/terraform/vars/vars.tfvars' }}"
+##
+
+- name: Remove VMs from /etc/hosts
+  hosts: localhost, all
+  gather_facts: false
+  vars:
+    # Both "vm_utils_terraform_vms_hosts" or just "etchosts" can be used to set whether to add hostnames to /etc/hosts
+    _vm_utils_terraform_vms_state: "{{ vm_utils_terraform_vms_state | default(_state) }}"
+    _state: "{{ state | default('create') }}"
+    _vm_utils_terraform_vms_hosts: "{{ vm_utils_terraform_vms_hosts | default(_etchosts) }}"
+    _etchosts: "{{ etchosts | default(false) }}"
+  tasks:
+    - name: Add hostname entries
+      delegate_to: localhost
+      run_once: true
+      when: 
+        - _vm_utils_terraform_vms_hosts | default(true)
+        - _vm_utils_terraform_vms_state | default("create") == "destroy"
+      block:
+        - name: Wait for SSH
+          ansible.builtin.wait_for_connection:
+            delay: 5
+            timeout: 300
+          retries: 60
+          delay: 3
+          register: wait_for_connection
+          until: wait_for_connection is succeeded
+          when:
+            - inventory_hostname != 'localhost'
+
+        - name: Gather facts
+          ansible.builtin.setup:
+          when:
+            - inventory_hostname != 'localhost'
+
+        - name: Prompt for sudo password
+          ansible.builtin.pause:
+            prompt: Enter sudo password to add hostnames to /etc/hosts
+            echo: false
+          delegate_to: localhost
+          run_once: true
+          register: _vm_utils_terraform_vms_sudo_pass
+          when: ansible_become_password is not defined
+
+        - name: Set sudo password
+          ansible.builtin.set_fact:
+            ansible_become_password: "{{ _vm_utils_terraform_vms_sudo_pass.user_input | default(_vm_utils_terraform_vms_sudo_pass) }}"
+          delegate_to: localhost
+          delegate_facts: true
+          run_once: true
+          when: _vm_utils_terraform_vms_sudo_pass is defined
+
+        - name: Remove device hostnames from localhost /etc/hosts
+          become: true
+          ansible.builtin.lineinfile:
+            path: /etc/hosts
+            line: "{{ hostvars[item].ansible_default_ipv4.address }} {{ hostvars[item].inventory_hostname }} {{ hostvars[item].ansible_fqdn }}"
+            regexp: "^{{ hostvars[item].ansible_default_ipv4.address }}.*$"
+            state: "absent"
+          delegate_to: localhost
+          run_once: true
+          loop: "{{ ansible_play_hosts }}"
+          when:
+            - hostvars[item].inventory_hostname != 'localhost'
+
+- name: Create / Destroy VMs
+  hosts: localhost
+  vars:
+    # Both "vm_utils_terraform_vms_state" or just "state" can be used to set the state of the VMs
+    _vm_utils_terraform_vms_state: "{{ vm_utils_terraform_vms_state | default(_state) }}"
+    _state: "{{ state | default('create') }}"
+    _vm_utils_terraform_vms_project_path: "{{ vm_utils_terraform_vms_project_path | default(lookup('env', 'PWD') + '/terraform') }}"
+    _vm_utils_terraform_vms_vars_files: "{{ vm_utils_terraform_vms_vars_files | default([lookup('env', 'PWD') + '/terraform/vars/vars.tfvars']) }}"
+  tasks:
+    ###
+    # This play deploys or removes the VMs
+    # _vm_utils_terraform_vms_state "create" creates the VMs
+    # _vm_utils_terraform_vms_state "recreate" removes the VMs and creates them again
+    # _vm_utils_terraform_vms_state "destroy" removes the VMs and aborts the play
+    ###
+    - name: Create or destroy VMs
+      delegate_to: localhost
+      run_once: true
+      block:
+        - name: Remove VMs
+          cloud.terraform.terraform:
+            project_path: "{{ _vm_utils_terraform_vms_project_path }}"
+            state: absent
+            force_init: true
+            variables_files: "{{ _vm_utils_terraform_vms_vars_files }}"
+          register: terraform
+          when: _vm_utils_terraform_vms_state | default("create") == "recreate" or _vm_utils_terraform_vms_state | default("create") == "destroy"
+
+        - name: Create VMs
+          cloud.terraform.terraform:
+            project_path: "{{ _vm_utils_terraform_vms_project_path }}"
+            state: present
+            force_init: true
+            variables_files: "{{ _vm_utils_terraform_vms_vars_files }}"
+          register: terraform
+          when: _vm_utils_terraform_vms_state | default("create") == "create" or _vm_utils_terraform_vms_state | default("create") == "recreate"
+
+        - name: Refresh inventory
+          ansible.builtin.meta: refresh_inventory
+
+- name: Wait for connection
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Wait for SSH
+      ansible.builtin.wait_for_connection:
+        delay: 5
+        timeout: 300
+      retries: 60
+      delay: 3
+      register: wait_for_connection
+      until: wait_for_connection is succeeded
+      when:
+        - inventory_hostname != 'localhost'
+
+    - name: Gather facts
+      ansible.builtin.setup:
+      when:
+        - inventory_hostname != 'localhost'
+
+- name: Add VMs from /etc/hosts
+  hosts: localhost, all
+  vars:
+    # Both "vm_utils_terraform_vms_hosts" or just "etchosts" can be used to set whether to add hostnames to /etc/hosts
+    _vm_utils_terraform_vms_state: "{{ vm_utils_terraform_vms_state | default(_state) }}"
+    _state: "{{ state | default('create') }}"
+    _vm_utils_terraform_vms_hosts: "{{ vm_utils_terraform_vms_hosts | default(_etchosts) }}"
+    _etchosts: "{{ etchosts | default(false) }}"
+  tasks:
+    - name: End play if VMs were deleted
+      ansible.builtin.meta: end_play
+      when: _vm_utils_terraform_vms_state | default("create") == "destroy"
+
+    - name: Add hostname entries
+      delegate_to: localhost
+      run_once: true
+      when: 
+        - _vm_utils_terraform_vms_hosts | default(true)
+        - _vm_utils_terraform_vms_state | default("create") != "destroy"
+      block:
+        - name: Prompt for sudo password
+          ansible.builtin.pause:
+            prompt: Enter sudo password to add hostnames to /etc/hosts
+            echo: false
+          delegate_to: localhost
+          run_once: true
+          register: _vm_utils_terraform_vms_sudo_pass
+          when: ansible_become_password is not defined
+
+        - name: Set sudo password
+          ansible.builtin.set_fact:
+            ansible_become_password: "{{ _vm_utils_terraform_vms_sudo_pass.user_input | default(_vm_utils_terraform_vms_sudo_pass) }}"
+          delegate_to: localhost
+          delegate_facts: true
+          run_once: true
+          when: _vm_utils_terraform_vms_sudo_pass is defined
+
+        - name: Add device hostnames to localhost /etc/hosts
+          become: true
+          ansible.builtin.lineinfile:
+            path: /etc/hosts
+            line: "{{ hostvars[item].ansible_default_ipv4.address }} {{ hostvars[item].inventory_hostname }} {{ hostvars[item].ansible_fqdn }}"
+            regexp: "^{{ hostvars[item].ansible_default_ipv4.address }}.*$"
+            state: "present"
+          delegate_to: localhost
+          run_once: true
+          loop: "{{ ansible_play_hosts }}"
+          when:
+            - hostvars[item].inventory_hostname != 'localhost'
+
+
+...

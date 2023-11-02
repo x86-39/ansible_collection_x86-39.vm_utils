@@ -1,0 +1,12 @@
+---
+## This is not done via -b since I don't want to set the password for all hosts when this is ran.
+## If it's a bother you can set this in your inventory and reference ansible_become_pass instead.
+# vm_utils_vyos_qcow2_image_sudo_pass: "password"  # Will prompt when unset
+
+
+vm_utils_vyos_qcow2_image_version: 1.5.0
+vm_utils_vyos_qcow2_image_size_gb: "5"
+
+# vm_utils_vyos_qcow2_base_iso_tag: "1.5-rolling-202310240118"  # Automatically fetches latest if unset
+vm_utils_vyos_qcow2_base_iso_url: "{{ _vm_utils_vyos_qcow2_latest_iso_url }}"  # Defaults to variable we fetch from GitHub
+...
