@@ -1,5 +1,5 @@
 ---
-- name: Run diademiemi.vyos_qcow2_image on localhost
+- name: Run diademiemi.vm_utils.vyos_qcow2_image on localhost
   hosts: localhost
   tasks:
     - name: "Ensure temporary roles directory exists"
@@ -12,7 +12,7 @@
         src: "{{ lookup('env', 'PWD') }}"
         dest: "~/.ansible/roles/{{ lookup('env', 'PWD') | basename }}"
         state: link
-    - name: "Include diademiemi.vyos_qcow2_image"
+    - name: "Include diademiemi.vm_utils.vyos_qcow2_image"
       ansible.builtin.include_role:
         name: "{{ lookup('env', 'PWD') | basename }}"
     - name: "Remove temporary symlink in roles directory"

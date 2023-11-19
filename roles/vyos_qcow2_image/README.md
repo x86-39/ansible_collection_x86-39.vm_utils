@@ -34,10 +34,10 @@ Example Playbook
 ----------------
 
 ```yaml
-- name: Use diademiemi.vyos_qcow2_image role
+- name: Use diademiemi.vm_utils.vyos_qcow2_image role
   hosts: "{{ target | default('vyos_qcow2_image') }}"
   roles:
-    - role: "diademiemi.vyos_qcow2_image"
+    - role: "diademiemi.vm_utils.vyos_qcow2_image"
       tags: ['diademiemi', 'vyos_qcow2_image', 'setup']    ```
 
 ```
