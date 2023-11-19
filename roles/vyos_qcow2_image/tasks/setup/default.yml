@@ -49,6 +49,13 @@
         - creates
         - warn
 
+    - name: Copy install-packages/tasks/main.yml
+      ansible.builtin.copy:
+        src: install-packages-main.yml
+        dest: /tmp/vyos-vm-images/roles/install-packages/tasks/main.yml
+        mode: "0644"
+      when: true
+
     - name: Prompt for sudo password
       ansible.builtin.pause:
         prompt: "Enter sudo password to build VyOS image"

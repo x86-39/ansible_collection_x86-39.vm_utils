@@ -1,0 +1,75 @@
+- name: Get facts
+  setup:
+    gather_subset: all
+
+- name: Install required packages
+  become: true
+  apt:
+    update_cache: true
+    name:
+      - gdisk
+      - kpartx
+      - dosfstools
+      - e2fsprogs
+      - gnupg
+      - qemu-utils
+      - python3-lxml
+      - grub-efi-amd64
+      - grub-efi-amd64-bin
+      - grub-common
+      - isolinux
+      - python3-requests
+      - rsync
+      - unzip
+      - zlib1g-dev
+      - squashfs-tools
+      - xorriso
+    state: present
+  when: ansible_os_family == 'Debian'
+
+- name: Install required packages for RedHat OS family
+  become: true
+  yum:
+    name:
+      - gdisk
+      - kpartx
+      - dosfstoolsoh right 
+      - e2fsprogs
+      - gnupg2
+      - qemu-img
+      - python3-libxml2
+      - grub2-efi-x64
+      - grub2-efi-x64-modules
+      - grub2-common
+      - syslinux
+      - python3-requests
+      - rsync
+      - unzip
+      - zlib-devel
+      - squashfs-tools
+      - xorriso
+    state: present
+  when: ansible_os_family == 'RedHat'
+
+- name: Install required packages for SUSE OS family
+  become: true
+  zypper:
+    name:
+      - gdisk
+      - kpartx
+      - dosfstools
+      - e2fsprogs
+      - gpg2
+      - qemu-tools
+      - python3-lxml
+      - grub2-x86_64-efi
+      - grub2
+      - syslinux
+      - python3-requests
+      - rsync
+      - unzip
+      - zlib-devel
+      - squashfs
+      - xorriso
+    state: present
+  when: ansible_os_family == 'Suse'
