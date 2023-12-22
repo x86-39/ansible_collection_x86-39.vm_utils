@@ -1,0 +1,51 @@
+---
+## VARS
+# vm_utils_terraform_state (alias=state) - The state of the VMs. "create" creates the VMs, "recreate" removes the VMs and creates them again, "destroy" removes the VMs and aborts the play. Default: "create"
+# vm_utils_terraform_dns_project_path - The path to the Terraform project. Default: "{{ lookup('env', 'PWD') + '/terraform/dns' }}"
+# vm_utils_terraform_dns_vars_files - The path to the Terraform variables files. Default: none
+# vm_utils_terraform_additional_dns_records - Additional DNS records to add. Default: none
+# vm_utils_terraform_dns_records - The DNS records to add. Default: generated from terraform output
+##
+## SHORTCUTS
+# dns_records - The DNS records to add. Default: generated from terraform output
+# additional_dns_records - Additional DNS records to add. Default: none
+##
+## DEPENDENCIES
+# Provider can be dynamically set in diademiemi.vm_utils.terraform_inv_mgt
+# If done in the same play, vars carry over to this playbook.
+##
+
+- name: Set DNS entries with standardised Terraform
+  hosts: localhost
+  gather_facts: false
+  vars:
+    __dns_records: "{{ terraform.outputs['dns_records']['value'] | default([]) }}"
+    _additional_dns_records: "{{ additional_dns_records | default([]) }}"
+    _vm_utils_terraform_additional_dns_records: "{{ vm_utils_terraform_additional_dns_records | default(_additional_dns_records) }}"
+    _vm_utils_terraform_dns_records: "{{ vm_utils_terraform_dns_records | default(_dns_records) + _vm_utils_terraform_additional_dns_records }}"
+    _dns_records: "{{ dns_records | default(__dns_records) }}"
+    _vm_utils_terraform_dns_project_path: "{{ vm_utils_terraform_dns_project_path | default(lookup('env', 'PWD') + '/terraform/dns') }}"
+    _vm_utils_terraform_dns_vars_files: "{{ vm_utils_terraform_dns_vars_files | default([]) }}"
+    _vm_utils_terraform_dns_additional_vars: "{{ vm_utils_terraform_dns_additional_vars | default({}) }}"
+  tasks:
+    - name: Return information about DNS
+      ansible.builtin.debug:
+        msg: |
+          The following DNS will be created:
+          {{ _vm_utils_terraform_dns_records | to_nice_yaml }}
+          Terraform project path is {{ _vm_utils_terraform_dns_project_path }}
+          Terraform variables files are {{ _vm_utils_terraform_dns_vars_files }}
+          Additional Terraform variables are {{ _vm_utils_terraform_dns_additional_vars }}
+
+    - name: Create DNS records
+      cloud.terraform.terraform:
+        project_path: "{{ _vm_utils_terraform_dns_project_path }}"
+        state: present
+        force_init: true
+        variables_files: "{{ _vm_utils_terraform_dns_vars_files }}"
+        variables: "{{ _variables_inline }}"
+      vars:
+        _variables_inline: "{{ {} | combine(_vm_utils_terraform_dns_additional_vars) | combine({'dns_records': _vm_utils_terraform_dns_records | to_json }) }}"
+      register: terraform
+
+...
