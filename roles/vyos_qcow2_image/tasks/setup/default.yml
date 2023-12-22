@@ -38,7 +38,7 @@
         force: true
       when: true
 
-    - name: Remove instances of deprecated args warn from roles/install-grub/tasks/main.yml
+    - name: Remove instances of deprecated args from roles/install-grub/tasks/main.yml
       ansible.builtin.replace:
         path: /tmp/vyos-vm-images/roles/install-grub/tasks/main.yml
         regexp: '{{ item }}:.*'
@@ -58,7 +58,9 @@
 
     - name: Prompt for sudo password
       ansible.builtin.pause:
-        prompt: "Enter sudo password to build VyOS image"
+        prompt: |
+          Root is needed to build VyOS image
+          Enter sudo password
         echo: false
       delegate_to: localhost
       run_once: true
