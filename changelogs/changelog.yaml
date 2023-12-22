@@ -9,3 +9,16 @@ releases:
     fragments:
     - main.yml
     release_date: '2023-11-02'
+  2.0.0:
+    changes:
+      major_changes:
+      - Added new playbook terraform_dns for changing DNS records through Ansible
+        w/ Terraform
+      - Added new playbook terraform_inv_mgt for changing inventory sources
+      - Rewrote terraform_vms playbook, CHECK NEW DOCUMENTATION
+      release_summary: This release is a major overhaul of the terraform_vms playbook.
+        It is now much more flexible and can be used to create and destroy VMs in
+        a much more dynamic way.
+    fragments:
+    - changelog.yml
+    release_date: '2023-12-22'
