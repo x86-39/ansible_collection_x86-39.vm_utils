@@ -81,12 +81,28 @@
   hosts: localhost
   vars:
     # Both "vm_utils_terraform_state" or just "state" can be used to set the state of the VMs
+    # STATE
+    # Defaults to create. Can be set to recreate or destroy
     _vm_utils_terraform_state: "{{ vm_utils_terraform_state | default(_state) }}"
     _state: "{{ state | default('create') }}"
+    # ENVIRONMENT
+    # Defaults to dev
     _vm_utils_terraform_env: "{{ vm_utils_terraform_env | default(_env) }}"
     _env: "{{ env | default('dev') }}"
-    _vm_utils_terraform_project_path: "{{ vm_utils_terraform_project_path | default(lookup('env', 'PWD') + '/terraform/infra/') }}"
+    # _vm_utils_terraform_project_path: "{{ vm_utils_terraform_project_path | default(lookup('env', 'PWD') + '/terraform/infra/') }}"
+    # PROVIDER
+    # Defaults to libvirt
+    _vm_utils_terraform_provider: "{{ vm_utils_terraform_provider | default(_provider) }}"
+    _provider: "{{ provider | default('libvirt') }}"
+    # PROJECT PATH
+    # Defaults to ${PWD}/terraform/infra/provider/, e.g. /home/user/terraform/infra/libvirt/
+    _vm_utils_terraform_project_path: "{{ vm_utils_terraform_project_path | default(_project_path) }}"
+    _project_path: "{{ lookup('env', 'PWD') + '/terraform/infra/' + __vm_utils_terraform_provider + '/' }}"
     _vm_utils_terraform_vars_files: "{{ vm_utils_terraform_vars_files | default(_vm_utils_terraform_project_path + '/vars/' + _vm_utils_terraform_env + '.tfvars') }}"
+    # WORKSPACE
+    # Defaults to provider-env, e.g. libvirt-dev
+    _vm_utils_terraform_workspace: "{{ vm_utils_terraform_workspace | default(_workspace) }}"
+    _workspace: "{{ workspace | default(_vm_utils_terraform_provider + '-' + _vm_utils_terraform_env) }}"
   tasks:
     ###
     # This play deploys or removes the VMs
@@ -111,6 +127,7 @@
             state: absent
             force_init: true
             variables_files: "{{ _vm_utils_terraform_vars_files }}"
+            workspace: "{{ _vm_utils_terraform_env }}"
           register: terraform_destroy
           when: _vm_utils_terraform_state | default("create") == "recreate" or _vm_utils_terraform_state | default("create") == "destroy"
 
@@ -120,6 +137,7 @@
             state: present
             force_init: true
             variables_files: "{{ _vm_utils_terraform_vars_files }}"
+            workspace: "{{ _vm_utils_terraform_env }}"
           register: terraform
           when: _vm_utils_terraform_state | default("create") == "create" or _vm_utils_terraform_state | default("create") == "recreate"
 

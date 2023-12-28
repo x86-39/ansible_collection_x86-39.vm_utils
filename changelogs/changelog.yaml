@@ -22,3 +22,15 @@ releases:
     fragments:
     - changelog.yml
     release_date: '2023-12-22'
+  3.0.0:
+    changes:
+      breaking_changes:
+      - now requires my fork of cloud.terraform collection
+      - workspace now defaults to provider-env, instead of "default"
+      major_changes:
+      - add workspace support in terraform playbooks
+      release_summary: This release adds workspace support to terraform playbooks.
+        It also requires my fork of cloud.terraform collection.
+    fragments:
+    - workspace.yml
+    release_date: '2023-12-28'

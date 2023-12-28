@@ -5,6 +5,25 @@ diademiemi.vm_utils Release Notes
 .. contents:: Topics
 
 
+v3.0.0
+======
+
+Release Summary
+---------------
+
+This release adds workspace support to terraform playbooks. It also requires my fork of cloud.terraform collection.
+
+Major Changes
+-------------
+
+- add workspace support in terraform playbooks
+
+Breaking Changes / Porting Guide
+--------------------------------
+
+- now requires my fork of cloud.terraform collection
+- workspace now defaults to provider-env, instead of "default"
+
 v2.0.0
 ======
 

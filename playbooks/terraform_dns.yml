@@ -15,18 +15,62 @@
 # If done in the same play, vars carry over to this playbook.
 ##
 
+# Please read the vars in the first play for more documentation
+
 - name: Set DNS entries with standardised Terraform
   hosts: localhost
   gather_facts: false
   vars:
+    # DNS RECORDS
+    # Fetched from terraform.outputs
     __dns_records: "{{ terraform.outputs['dns_records']['value'] | default([]) }}"
-    _additional_dns_records: "{{ additional_dns_records | default([]) }}"
+    # Additional DNS records to add to the list
+    # Defaults to []
+    # Can be overwritten with vm_utils_terraform_additional_dns_records or additional_dns_records
     _vm_utils_terraform_additional_dns_records: "{{ vm_utils_terraform_additional_dns_records | default(_additional_dns_records) }}"
+    _additional_dns_records: "{{ additional_dns_records | default([]) }}"
+    # Combined list of DNS records
+    # Can be completely overwritten by vm_utils_terraform_dns_records or dns_records
+    # Defaults to __dns_records + _vm_utils_terraform_additional_dns_records
+    # Can be overwritten with vm_utils_terraform_dns_records or dns_records
     _vm_utils_terraform_dns_records: "{{ vm_utils_terraform_dns_records | default(_dns_records) + _vm_utils_terraform_additional_dns_records }}"
     _dns_records: "{{ dns_records | default(__dns_records) }}"
-    _vm_utils_terraform_dns_project_path: "{{ vm_utils_terraform_dns_project_path | default(lookup('env', 'PWD') + '/terraform/dns') }}"
+    # DNS PROVIDER
+    # Defaults to cloudflare
+    # Can be overwritten with vm_utils_terraform_dns_provider or dns_provider
+    _vm_utils_terraform_dns_provider: "{{ vm_utils_terraform_dns_provider | default(_dns_provider) }}"
+    _dns_provider: "{{ dns_provider | default('cloudflare') }}"
+    # DNS PROJECT PATH
+    # Defaults to ${PWD}/terraform/dns/dns_provider/, e.g. ./terraform/dns/cloudflare/
+    # Can be overwritten with vm_utils_terraform_dns_project_path
+    _vm_utils_terraform_dns_project_path: "{{ vm_utils_terraform_dns_project_path | default(_dns_project_path) }}"
+    _dns_project_path: "{{ lookup('env', 'PWD') + '/terraform/dns/' + _vm_utils_terraform_dns_provider + '/' }}"
+    # DNS VARIABLES FILES
+    # Optional, you should set keys in env variables with TF_VAR_ prefix
+    # Defaults to []
+    # Can be overwritten with vm_utils_terraform_dns_vars_files
     _vm_utils_terraform_dns_vars_files: "{{ vm_utils_terraform_dns_vars_files | default([]) }}"
+    # Additional variables to pass to Terraform
+    # Please set keys in env variables with TF_VAR_ prefix, or in Ansible Vault!!!
+    # Defaults to {}
+    # Can be overwritten with vm_utils_terraform_dns_additional_vars
     _vm_utils_terraform_dns_additional_vars: "{{ vm_utils_terraform_dns_additional_vars | default({}) }}"
+    # THE FOLLOWING VARS ARE FROM INFRA. THESE SPECIFY THE NAME OF THE WORKSPACE, SO THAT DNS RECORDS DO NOT OVERWRITE EACH OTHER!
+    # ENVIRONMENT
+    # Defaults to dev
+    # Can be overwritten with vm_utils_terraform_env or env
+    _vm_utils_terraform_env: "{{ vm_utils_terraform_env | default(_env) }}"
+    _env: "{{ env | default('dev') }}"
+    # PROVIDER
+    # Defaults to libvirt
+    # Can be overwritten with vm_utils_terraform_provider or provider
+    _vm_utils_terraform_provider: "{{ vm_utils_terraform_provider | default(_provider) }}"
+    _provider: "{{ provider | default('libvirt') }}"
+    # WORKSPACE
+    # Defaults to infra-provider-env, e.g. libvirt-dev
+    # Can be overwritten with vm_utils_terraform_workspace
+    _vm_utils_terraform_workspace: "{{ vm_utils_terraform_workspace | default(_workspace) }}"
+    _workspace: "{{ workspace | default(_vm_utils_terraform_provider~'-'~_vm_utils_terraform_env) }}"
   tasks:
     - name: Return information about DNS
       ansible.builtin.debug:
@@ -44,6 +88,7 @@
         force_init: true
         variables_files: "{{ _vm_utils_terraform_dns_vars_files }}"
         variables: "{{ _variables_inline }}"
+        workspace: "{{ _vm_utils_terraform_workspace }}"
       vars:
         _variables_inline: "{{ {} | combine(_vm_utils_terraform_dns_additional_vars) | combine({'dns_records': _vm_utils_terraform_dns_records | to_json }) }}"
       register: terraform

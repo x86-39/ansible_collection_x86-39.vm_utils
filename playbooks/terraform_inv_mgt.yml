@@ -14,33 +14,49 @@
   hosts: localhost
   gather_facts: false
   vars:
-    __vm_utils_terraform_provider: "{{ vm_utils_terraform_provider | default(_provider) }}"
+    # PROVIDER
+    # Defaults to libvirt
+    # Can be overwritten with vm_utils_terraform_provider or provider
+    _vm_utils_terraform_provider: "{{ vm_utils_terraform_provider | default(_provider) }}"
     _provider: "{{ provider | default('libvirt') }}"
-    __vm_utils_terraform_env: "{{ vm_utils_terraform_env | default(_env) }}"
+    # ENVIRONMENT
+    # Defaults to dev
+    # Can be overwritten with vm_utils_terraform_env or env
+    _vm_utils_terraform_env: "{{ vm_utils_terraform_env | default(_env) }}"
+    _vm_utils_terraform_inventory_name: "{{ vm_utils_terraform_inventory_name | default(_vm_utils_terraform_env) }}"
+    # ENVIRONMENT
+    # Defaults to dev
+    # Can be overwritten with vm_utils_terraform_env or env
     _env: "{{ env | default('dev') }}"
-    __vm_utils_terraform_project_path: "{{ vm_utils_terraform_project_path | default(_project_path) }}"
-    _project_path: "{{ lookup('env', 'PWD') + '/terraform/infra/' + __vm_utils_terraform_env + '/' + __vm_utils_terraform_provider + '/' }}"
+    # PROJECT PATH
+    # Defaults to ${PWD}/terraform/infra/provider/, e.g. ./terraform/infra/libvirt/
+    # Can be overwritten with vm_utils_terraform_project_path
+    _vm_utils_terraform_project_path: "{{ vm_utils_terraform_project_path | default(_project_path) }}"
+    _project_path: "{{ lookup('env', 'PWD') + '/terraform/infra/' + _vm_utils_terraform_provider + '/' }}"
+    # WORKSPACE
+    # Defaults to provider-env, e.g. libvirt-dev
+    # Can be overwritten with vm_utils_terraform_workspace or workspace
+    _vm_utils_terraform_workspace: "{{ vm_utils_terraform_workspace | default(_workspace) }}"
+    _workspace: "{{ workspace | default(_vm_utils_terraform_provider + '-' + _vm_utils_terraform_env) }}"
   tasks:
-    - name: Set _vm_utils_terraform_project_path
-      ansible.builtin.set_fact:
-        _vm_utils_terraform_project_path: "{{ __vm_utils_terraform_project_path }}"
-
-    - name: Set _vm_utils_terraform_env
-      ansible.builtin.set_fact:
-        _vm_utils_terraform_env: "{{ __vm_utils_terraform_env }}"
-
-    - name: Set _vm_utils_terraform_provider
-      ansible.builtin.set_fact:
-        _vm_utils_terraform_provider: "{{ __vm_utils_terraform_provider }}"
-
     - name: "Replace terraform_path in inventory file"
       ansible.builtin.lineinfile:
-        path: "{{ lookup('env', 'PWD') + '/inventories/' + _vm_utils_terraform_env + '/terraform.yml' }}"  # noqa: jinja[spacing]
+        path: "{{ lookup('env', 'PWD') + '/inventories/' + _vm_utils_terraform_inventory_name + '/terraform.yml' }}"  # noqa: jinja[spacing]
         regexp: '^project_path:'
         line: "project_path: \"{{ _vm_utils_terraform_project_path | regex_replace(lookup('env', 'PWD'), '.') }}\""  # Make it a relative path
       delegate_to: localhost
       when:
-        - _vm_utils_terraform_provider is defined
-        - _vm_utils_terraform_env is defined
+        - _vm_utils_terraform_project_path is defined
+        - _vm_utils_terraform_inventory_name is defined
 
+    - name: "Replace workspace in inventory file"
+      ansible.builtin.lineinfile:
+        path: "{{ lookup('env', 'PWD') + '/inventories/' + _vm_utils_terraform_inventory_name + '/terraform.yml' }}"  # noqa: jinja[spacing]
+        regexp: '^workspace:'
+        line: "workspace: \"{{ _vm_utils_terraform_workspace }}\""  # Make it a relative path
+      delegate_to: localhost
+      when:
+        - _vm_utils_terraform_project_path is defined
+        - _vm_utils_terraform_inventory_name is defined
+        - _vm_utils_terraform_workspace is defined
 ...
