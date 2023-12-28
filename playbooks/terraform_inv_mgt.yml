@@ -23,7 +23,15 @@
     # Defaults to dev
     # Can be overwritten with vm_utils_terraform_env or env
     _vm_utils_terraform_env: "{{ vm_utils_terraform_env | default(_env) }}"
+    # INVENTORY NAME
+    # Defaults to env, e.g. dev
+    # Can be overwritten with vm_utils_terraform_inventory_name or inventory_name
     _vm_utils_terraform_inventory_name: "{{ vm_utils_terraform_inventory_name | default(_vm_utils_terraform_env) }}"
+    # INVENTORY PATH
+    # Defaults to ${PWD}/inventories/env/terraform.yml, e.g. ./inventories/dev/terraform.yml
+    # Can be overwritten with vm_utils_terraform_inventory_path
+    _vm_utils_terraform_inventory_path: "{{ vm_utils_terraform_inventory_path | default(lookup('env', 'PWD') + '/inventories/' +
+      _vm_utils_terraform_inventory_name + '/terraform.yml') }}"
     # ENVIRONMENT
     # Defaults to dev
     # Can be overwritten with vm_utils_terraform_env or env

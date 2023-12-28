@@ -5,6 +5,20 @@ diademiemi.vm_utils Release Notes
 .. contents:: Topics
 
 
+v3.1.0
+======
+
+Release Summary
+---------------
+
+Minor changes to terraform_inv_mgt
+
+Minor Changes
+-------------
+
+- Make inventory_path overridable in terraform_inv_mgt
+- Update README.md
+
 v3.0.0
 ======
 
