@@ -52,3 +52,11 @@ releases:
     fragments:
     - 4.yml
     release_date: '2024-02-04'
+  4.0.1:
+    changes:
+      bugfixes:
+      - Fix typo in vyos compile
+      release_summary: Fix vyos compile
+    fragments:
+    - 401.yml
+    release_date: '2024-02-04'

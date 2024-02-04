@@ -5,6 +5,19 @@ diademiemi.vm_utils Release Notes
 .. contents:: Topics
 
 
+v4.0.1
+======
+
+Release Summary
+---------------
+
+Fix vyos compile
+
+Bugfixes
+--------
+
+- Fix typo in vyos compile
+
 v4.0.0
 ======
 
