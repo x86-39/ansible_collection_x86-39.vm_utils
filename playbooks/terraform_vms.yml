@@ -14,6 +14,8 @@
 # If done in the same play, vars carry over to this playbook.
 ##
 
+# Please read the vars in the second play for more documentation
+
 - name: Remove VMs from /etc/hosts
   hosts: localhost, all
   gather_facts: false
@@ -83,26 +85,30 @@
     # Both "vm_utils_terraform_state" or just "state" can be used to set the state of the VMs
     # STATE
     # Defaults to create. Can be set to recreate or destroy
+    # Can be overwritten with vm_utils_terraform_state or state
     _vm_utils_terraform_state: "{{ vm_utils_terraform_state | default(_state) }}"
     _state: "{{ state | default('create') }}"
     # ENVIRONMENT
     # Defaults to dev
+    # Can be overwritten with vm_utils_terraform_env or env
     _vm_utils_terraform_env: "{{ vm_utils_terraform_env | default(_env) }}"
     _env: "{{ env | default('dev') }}"
-    # _vm_utils_terraform_project_path: "{{ vm_utils_terraform_project_path | default(lookup('env', 'PWD') + '/terraform/infra/') }}"
     # PROVIDER
     # Defaults to libvirt
+    # Can be overwritten with vm_utils_terraform_provider or provider
     _vm_utils_terraform_provider: "{{ vm_utils_terraform_provider | default(_provider) }}"
     _provider: "{{ provider | default('libvirt') }}"
     # PROJECT PATH
-    # Defaults to ${PWD}/terraform/infra/provider/, e.g. /home/user/terraform/infra/libvirt/
+    # Defaults to ${PWD}/terraform/infra/provider/, e.g. ./terraform/infra/libvirt/
+    # Can be overwritten with vm_utils_terraform_project_path
     _vm_utils_terraform_project_path: "{{ vm_utils_terraform_project_path | default(_project_path) }}"
-    _project_path: "{{ lookup('env', 'PWD') + '/terraform/infra/' + __vm_utils_terraform_provider + '/' }}"
+    _project_path: "{{ lookup('env', 'PWD') + '/terraform/infra/' + _vm_utils_terraform_provider + '/' }}"
     _vm_utils_terraform_vars_files: "{{ vm_utils_terraform_vars_files | default(_vm_utils_terraform_project_path + '/vars/' + _vm_utils_terraform_env + '.tfvars') }}"
     # WORKSPACE
     # Defaults to provider-env, e.g. libvirt-dev
+    # Can be overwritten with vm_utils_terraform_workspace or workspace
     _vm_utils_terraform_workspace: "{{ vm_utils_terraform_workspace | default(_workspace) }}"
-    _workspace: "{{ workspace | default(_vm_utils_terraform_provider + '-' + _vm_utils_terraform_env) }}"
+    _workspace: "{{ workspace | default(_vm_utils_terraform_provider~'-'~_vm_utils_terraform_env) }}"
   tasks:
     ###
     # This play deploys or removes the VMs
@@ -127,7 +133,7 @@
             state: absent
             force_init: true
             variables_files: "{{ _vm_utils_terraform_vars_files }}"
-            workspace: "{{ _vm_utils_terraform_env }}"
+            workspace: "{{ _vm_utils_terraform_workspace }}"
           register: terraform_destroy
           when: _vm_utils_terraform_state | default("create") == "recreate" or _vm_utils_terraform_state | default("create") == "destroy"
 
@@ -137,7 +143,7 @@
             state: present
             force_init: true
             variables_files: "{{ _vm_utils_terraform_vars_files }}"
-            workspace: "{{ _vm_utils_terraform_env }}"
+            workspace: "{{ _vm_utils_terraform_workspace }}"
           register: terraform
           when: _vm_utils_terraform_state | default("create") == "create" or _vm_utils_terraform_state | default("create") == "recreate"
 

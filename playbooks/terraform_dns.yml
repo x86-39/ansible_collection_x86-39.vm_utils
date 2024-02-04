@@ -75,7 +75,7 @@
     - name: Return information about DNS
       ansible.builtin.debug:
         msg: |
-          The following DNS will be created:
+          The following DNS will be created in workspace {{ _vm_utils_terraform_workspace }}:
           {{ _vm_utils_terraform_dns_records | to_nice_yaml }}
           Terraform project path is {{ _vm_utils_terraform_dns_project_path }}
           Terraform variables files are {{ _vm_utils_terraform_dns_vars_files }}

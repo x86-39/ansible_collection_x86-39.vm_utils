@@ -5,6 +5,20 @@ diademiemi.vm_utils Release Notes
 .. contents:: Topics
 
 
+v4.0.0
+======
+
+Release Summary
+---------------
+
+Add workspaces support for a smaller setup footprint
+
+Major Changes
+-------------
+
+- Add workspaces support
+- Change variables, check documentation
+
 v3.1.0
 ======
 
