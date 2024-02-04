@@ -60,3 +60,11 @@ releases:
     fragments:
     - 401.yml
     release_date: '2024-02-04'
+  4.1.0:
+    changes:
+      bugfixes:
+      - Fix removing hostnames
+      release_summary: Fix removing hostnames
+    fragments:
+    - 410.yml
+    release_date: '2024-02-04'

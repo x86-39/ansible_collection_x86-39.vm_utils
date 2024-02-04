@@ -26,10 +26,9 @@
     _vm_utils_terraform_hosts: "{{ vm_utils_terraform_hosts | default(_etchosts) }}"
     _etchosts: "{{ etchosts | default(false) }}"
   tasks:
-    - name: Add hostname entries
-      delegate_to: localhost
-      run_once: true
-      when: 
+    - name: Wait for hosts
+      when:
+        - inventory_hostname != 'localhost'
         - _vm_utils_terraform_hosts | default(true)
         - _vm_utils_terraform_state | default("create") == "destroy"
       block:
@@ -41,14 +40,17 @@
           delay: 3
           register: wait_for_connection
           until: wait_for_connection is succeeded
-          when:
-            - inventory_hostname != 'localhost'
 
         - name: Gather facts
           ansible.builtin.setup:
-          when:
-            - inventory_hostname != 'localhost'
 
+    - name: Remove hostname entries
+      delegate_to: localhost
+      run_once: true
+      when: 
+        - _vm_utils_terraform_hosts | default(true)
+        - _vm_utils_terraform_state | default("create") == "destroy"
+      block:
         - name: Prompt for sudo password
           ansible.builtin.pause:
             prompt: Enter sudo password to add hostnames to /etc/hosts

@@ -5,6 +5,19 @@ diademiemi.vm_utils Release Notes
 .. contents:: Topics
 
 
+v4.1.0
+======
+
+Release Summary
+---------------
+
+Fix removing hostnames
+
+Bugfixes
+--------
+
+- Fix removing hostnames
+
 v4.0.1
 ======
 
