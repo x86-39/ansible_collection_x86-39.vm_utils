@@ -5,6 +5,14 @@ diademiemi.vm_utils Release Notes
 .. contents:: Topics
 
 
+v5.1.0
+======
+
+Release Summary
+---------------
+
+Fix handling for subdomains for /etc/hosts
+
 v5.0.0
 ======
 

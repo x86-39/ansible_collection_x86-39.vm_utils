@@ -10,7 +10,7 @@
 #   "{{ lookup('env', 'PWD') + '/inventories/' + terraform_env + '/terraform.yml' }}"
 # vm_utils_terraform_inventory_name - Sets the name of the inventory file to be used in the terraform_vms play. Default: env
 ##
-## SHORTCUTS (takes precedence over vm_utils_terraform_*)
+## SHORTCUTS
 # env - vm_utils_terraform_env
 # provider - vm_utils_terraform_provider
 # workspace - vm_utils_terraform_workspace

@@ -109,13 +109,13 @@
               combine({'dns_records': _vm_utils_terraform_dns_records | to_json}) }}"
           register: terraform_dns
 
-    - name: Add DNS records to /etc/hosts  # noqa jinja[spacing]
+    - name: Add DNS records to /etc/hosts
       when: _vm_utils_terraform_dns_provider == 'etchosts'
       vars:
         _content: "{% for record in _vm_utils_terraform_dns_records %}\
           {{ record.value }} {{ record.name }} \
-          {% if record.domain is defined and record.domain != '' %} {{record.name}}.{{record.domain}}{% endif %}
-          {% if _vm_utils_terraform_dns_domain != '' %} {{ record.name}}.{{_vm_utils_terraform_dns_domain}}{% endif %}
+          {% if record.domain is defined and record.domain != '' %} {{ record.name | split('.') | json_query('[0]') }}.{{ record.domain }}{% endif %}
+          {% if _vm_utils_terraform_dns_domain != '' %} {{ record.name | split('.') | json_query('[0]') }}.{{ _vm_utils_terraform_dns_domain }}{% endif %}
           \n{% endfor %}"
       block:
         - name: Return information about DNS

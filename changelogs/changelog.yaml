@@ -79,3 +79,9 @@ releases:
     fragments:
     - major.yml
     release_date: '2024-04-09'
+  5.1.0:
+    changes:
+      release_summary: Fix handling for subdomains for /etc/hosts
+    fragments:
+    - minor.yml
+    release_date: '2024-04-09'
