@@ -68,3 +68,14 @@ releases:
     fragments:
     - 410.yml
     release_date: '2024-02-04'
+  5.0.0:
+    changes:
+      major_changes:
+      - Added new variables (check playbook docs)
+      - Changed default terraform path to /terraform/<purpose>/<provider>
+      - Changed default tfvars path to /tfvars/<purpose>/<provider>/<env>.tfvars
+      - Changed variable precedence to prefer shortcuts
+      release_summary: Complete overhaul of all playbooks
+    fragments:
+    - major.yml
+    release_date: '2024-04-09'

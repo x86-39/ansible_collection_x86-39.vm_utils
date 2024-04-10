@@ -5,6 +5,22 @@ diademiemi.vm_utils Release Notes
 .. contents:: Topics
 
 
+v5.0.0
+======
+
+Release Summary
+---------------
+
+Complete overhaul of all playbooks
+
+Major Changes
+-------------
+
+- Added new variables (check playbook docs)
+- Changed default terraform path to /terraform/<purpose>/<provider>
+- Changed default tfvars path to /tfvars/<purpose>/<provider>/<env>.tfvars
+- Changed variable precedence to prefer shortcuts
+
 v4.1.0
 ======
 

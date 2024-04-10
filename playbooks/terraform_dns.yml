@@ -1,14 +1,20 @@
 ---
 ## VARS
-# vm_utils_terraform_state (alias=state) - The state of the VMs. "create" creates the VMs, "recreate" removes the VMs and creates them again, "destroy" removes the VMs and aborts the play. Default: "create"
-# vm_utils_terraform_dns_project_path - The path to the Terraform project. Default: "{{ lookup('env', 'PWD') + '/terraform/dns' }}"
+# vm_utils_terraform_dns_provider - The DNS provider to use. Default: cloudflare
+# vm_utils_terraform_dns_project_path - The path to the Terraform project. Default: "{{ lookup('env', 'PWD') + '/terraform/dns/dns_provider' }}"
 # vm_utils_terraform_dns_vars_files - The path to the Terraform variables files. Default: none
 # vm_utils_terraform_additional_dns_records - Additional DNS records to add. Default: none
 # vm_utils_terraform_dns_records - The DNS records to add. Default: generated from terraform output
+# vm_utils_terraform_dns_vars_files - The path to the Terraform variables files. Default: none
+# vm_utils_terraform_dns_additional_vars - Additional variables to pass to Terraform. Default: {}
 ##
-## SHORTCUTS
-# dns_records - The DNS records to add. Default: generated from terraform output
-# additional_dns_records - Additional DNS records to add. Default: none
+## SHORTCUTS (takes precedence over vm_utils_terraform_*)
+# dns_provider - vm_utils_terraform_dns_provider
+# additional_dns_records - vm_utils_terraform_additional_dns_records
+# dns_records - vm_utils_terraform_dns_records
+# env - vm_utils_terraform_env
+# provider - vm_utils_terraform_provider
+# workspace - vm_utils_terraform_workspace
 ##
 ## DEPENDENCIES
 # Provider can be dynamically set in diademiemi.vm_utils.terraform_inv_mgt
@@ -27,19 +33,25 @@
     # Additional DNS records to add to the list
     # Defaults to []
     # Can be overwritten with vm_utils_terraform_additional_dns_records or additional_dns_records
-    _vm_utils_terraform_additional_dns_records: "{{ vm_utils_terraform_additional_dns_records | default(_additional_dns_records) }}"
-    _additional_dns_records: "{{ additional_dns_records | default([]) }}"
+    _vm_utils_terraform_additional_dns_records: "{{ additional_dns_records | default(_additional_dns_records) }}"
+    _additional_dns_records: "{{ vm_utils_terraform_additional_dns_records | default([]) }}"
     # Combined list of DNS records
     # Can be completely overwritten by vm_utils_terraform_dns_records or dns_records
     # Defaults to __dns_records + _vm_utils_terraform_additional_dns_records
     # Can be overwritten with vm_utils_terraform_dns_records or dns_records
-    _vm_utils_terraform_dns_records: "{{ vm_utils_terraform_dns_records | default(_dns_records) + _vm_utils_terraform_additional_dns_records }}"
-    _dns_records: "{{ dns_records | default(__dns_records) }}"
+    _vm_utils_terraform_dns_records: "{{ dns_records | default(_dns_records) + _vm_utils_terraform_additional_dns_records }}"
+    _dns_records: "{{ vm_utils_terraform_dns_records | default(__dns_records) }}"
+    # Terraform default domain
+    # From terraform.outputs
+    # Defaults to ""
+    # Can be overwritten with vm_utils_terraform_dns_domain or dns_domain
+    _vm_utils_terraform_dns_domain: "{{ dns_domain | default(_dns_domain) }}"
+    _dns_domain: "{{ vm_utils_terraform_dns_domain | default(terraform.outputs['default_domain']['value'] | default('')) }}"
     # DNS PROVIDER
     # Defaults to cloudflare
     # Can be overwritten with vm_utils_terraform_dns_provider or dns_provider
-    _vm_utils_terraform_dns_provider: "{{ vm_utils_terraform_dns_provider | default(_dns_provider) }}"
-    _dns_provider: "{{ dns_provider | default('cloudflare') }}"
+    _vm_utils_terraform_dns_provider: "{{ dns_provider | default(_dns_provider) }}"
+    _dns_provider: "{{ vm_utils_terraform_dns_provider | default('cloudflare') }}"
     # DNS PROJECT PATH
     # Defaults to ${PWD}/terraform/dns/dns_provider/, e.g. ./terraform/dns/cloudflare/
     # Can be overwritten with vm_utils_terraform_dns_project_path
@@ -57,40 +69,100 @@
     _vm_utils_terraform_dns_additional_vars: "{{ vm_utils_terraform_dns_additional_vars | default({}) }}"
     # THE FOLLOWING VARS ARE FROM INFRA. THESE SPECIFY THE NAME OF THE WORKSPACE, SO THAT DNS RECORDS DO NOT OVERWRITE EACH OTHER!
     # ENVIRONMENT
-    # Defaults to dev
+    # Defaults to demo
     # Can be overwritten with vm_utils_terraform_env or env
-    _vm_utils_terraform_env: "{{ vm_utils_terraform_env | default(_env) }}"
-    _env: "{{ env | default('dev') }}"
+    _vm_utils_terraform_env: "{{ env | default(_env) }}"
+    _env: "{{ vm_utils_terraform_env | default('demo') }}"
     # PROVIDER
     # Defaults to libvirt
     # Can be overwritten with vm_utils_terraform_provider or provider
-    _vm_utils_terraform_provider: "{{ vm_utils_terraform_provider | default(_provider) }}"
-    _provider: "{{ provider | default('libvirt') }}"
+    _vm_utils_terraform_provider: "{{ provider | default(_provider) }}"
+    _provider: "{{ vm_utils_terraform_provider | default('libvirt') }}"
     # WORKSPACE
-    # Defaults to infra-provider-env, e.g. libvirt-dev
+    # Defaults to infra provider-env, e.g. libvirt-dev
     # Can be overwritten with vm_utils_terraform_workspace
-    _vm_utils_terraform_workspace: "{{ vm_utils_terraform_workspace | default(_workspace) }}"
-    _workspace: "{{ workspace | default(_vm_utils_terraform_provider~'-'~_vm_utils_terraform_env) }}"
+    _vm_utils_terraform_workspace: "{{ workspace | default(_workspace) }}"
+    _workspace: "{{ vm_utils_terraform_workspace | default(_vm_utils_terraform_provider~'-'~_vm_utils_terraform_env) }}"
   tasks:
-    - name: Return information about DNS
-      ansible.builtin.debug:
-        msg: |
-          The following DNS will be created in workspace {{ _vm_utils_terraform_workspace }}:
-          {{ _vm_utils_terraform_dns_records | to_nice_yaml }}
-          Terraform project path is {{ _vm_utils_terraform_dns_project_path }}
-          Terraform variables files are {{ _vm_utils_terraform_dns_vars_files }}
-          Additional Terraform variables are {{ _vm_utils_terraform_dns_additional_vars }}
+    - name: Main block
+      when: _vm_utils_terraform_dns_provider != 'none' and _vm_utils_terraform_dns_provider != 'etchosts'
+      block:
+        - name: Return information about DNS
+          ansible.builtin.debug:
+            msg: |
+              The following DNS will be created in workspace {{ _vm_utils_terraform_workspace }}:
+              {{ _vm_utils_terraform_dns_records | to_nice_yaml }}
+              Terraform project path is {{ _vm_utils_terraform_dns_project_path }}
+              Terraform variables files are {{ _vm_utils_terraform_dns_vars_files }}
+              Additional Terraform variables are {{ _vm_utils_terraform_dns_additional_vars }}
 
-    - name: Create DNS records
-      cloud.terraform.terraform:
-        project_path: "{{ _vm_utils_terraform_dns_project_path }}"
-        state: present
-        force_init: true
-        variables_files: "{{ _vm_utils_terraform_dns_vars_files }}"
-        variables: "{{ _variables_inline }}"
-        workspace: "{{ _vm_utils_terraform_workspace }}"
+        - name: Create DNS records
+          cloud.terraform.terraform:
+            project_path: "{{ _vm_utils_terraform_dns_project_path }}"
+            state: present
+            force_init: true
+            variables_files: "{{ _vm_utils_terraform_dns_vars_files }}"
+            variables: "{{ _variables_inline }}"
+            workspace: "{{ _vm_utils_terraform_workspace }}"
+          vars:
+            _variables_inline: "{{ {} | combine(_vm_utils_terraform_dns_additional_vars) |
+              combine({'dns_records': _vm_utils_terraform_dns_records | to_json}) }}"
+          register: terraform_dns
+
+    - name: Add DNS records to /etc/hosts  # noqa jinja[spacing]
+      when: _vm_utils_terraform_dns_provider == 'etchosts'
       vars:
-        _variables_inline: "{{ {} | combine(_vm_utils_terraform_dns_additional_vars) | combine({'dns_records': _vm_utils_terraform_dns_records | to_json }) }}"
-      register: terraform
+        _content: "{% for record in _vm_utils_terraform_dns_records %}\
+          {{ record.value }} {{ record.name }} \
+          {% if record.domain is defined and record.domain != '' %} {{record.name}}.{{record.domain}}{% endif %}
+          {% if _vm_utils_terraform_dns_domain != '' %} {{ record.name}}.{{_vm_utils_terraform_dns_domain}}{% endif %}
+          \n{% endfor %}"
+      block:
+        - name: Return information about DNS
+          ansible.builtin.debug:
+            msg: |
+              The following DNS will be added to /etc/hosts:
+              {{ _vm_utils_terraform_dns_records | to_nice_yaml }}
+
+        - name: Check if adding hostnames would change
+          ansible.builtin.blockinfile:
+            path: /etc/hosts
+            content: "{{ _content }}"
+            marker: "# {mark} RECORDS FROM terraform_dns.yml"
+            state: "present"
+          delegate_to: localhost
+          run_once: true
+          check_mode: true
+          register: _vm_utils_terraform_check_hosts
+
+        - name: If would change  # noqa no-handler
+          when: _vm_utils_terraform_check_hosts.changed
+          block:
+            - name: Prompt for sudo password
+              ansible.builtin.pause:
+                prompt: Enter sudo password to add hostnames to /etc/hosts
+                echo: false
+              delegate_to: localhost
+              run_once: true
+              register: _vm_utils_terraform_sudo_pass
+              when: ansible_become_password is not defined
+
+            - name: Set sudo password
+              ansible.builtin.set_fact:
+                ansible_become_password: "{{ _vm_utils_terraform_sudo_pass.user_input | default(_vm_utils_terraform_sudo_pass) }}"
+              delegate_to: localhost
+              delegate_facts: true
+              run_once: true
+              when: _vm_utils_terraform_sudo_pass is defined
+
+            - name: Add device hostnames to localhost /etc/hosts
+              become: true
+              ansible.builtin.blockinfile:
+                path: /etc/hosts
+                content: "{{ _content }}"
+                marker: "# {mark} RECORDS FROM terraform_dns.yml"
+                state: "present"
+              delegate_to: localhost
+              run_once: true
 
 ...
