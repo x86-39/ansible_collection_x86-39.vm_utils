@@ -2,7 +2,8 @@
 collections:
   - name: cloud.terraform
     type: git
-    source: https://github.com/ansible-community/cloud.terraform.git
+    source: https://github.com/diademiemi/cloud.terraform.git
+  - name: diademiemi.git
 
 roles: []
 ...

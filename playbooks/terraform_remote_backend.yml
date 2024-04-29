@@ -1,0 +1,134 @@
+---
+## VARS
+# vm_utils_terraform_project_paths - List of paths to Terraform projects to search. Default: [lookup('env', 'PWD') + '/terraform']
+# vm_utils_terraform_search_file - The file to search for in the Terraform project. Default: "provider.tf"
+# vm_utils_terraform_backend_file - The file to place the Terraform backend configuration. Default: "backend.tf"
+# vm_utils_terraform_bucket - The bucket to store the Terraform state. Default: "tfstates"
+# vm_utils_force_reconfigure - Force reconfigure Terraform. Default: false
+# vm_utils_migrate_state - Migrate Terraform state upon changed configuration. Default: true
+## SHORTCUTS
+# search_file - vm_utils_terraform_search_file
+# backend_file - vm_utils_terraform_backend_file
+# bucket - vm_utils_terraform_bucket
+# force_reconfigure - vm_utils_force_reconfigure
+# migrate_state - vm_utils_migrate_state
+##
+# Please read the vars in the first play for more documentation
+
+- name: Set DNS entries with standardised Terraform
+  hosts: localhost
+  gather_facts: false
+  vars:
+    # SEARCH FILE
+    # Defaults to provider.tf
+    # Can be overwritten with vm_utils_terraform_search_file or search_file
+    _vm_utils_terraform_search_file: "{{ search_file | default(_search_file) }}"
+    _search_file: "{{ vm_utils_terraform_search_file | default('provider.tf') }}"
+    # BACKEND FILE
+    # Defaults to backend.tf
+    # Can be overwritten with vm_utils_terraform_backend_file or backend_file
+    _vm_utils_terraform_backend_file: "{{ backend_file | default(_backend_file) }}"
+    _backend_file: "{{ vm_utils_terraform_backend_file | default('backend.tf') }}"
+    # BUCKET
+    # Defaults to tfstates
+    # Can be overwritten with vm_utils_terraform_bucket or bucket
+    _vm_utils_terraform_bucket: "{{ bucket | default(_bucket) }}"
+    _bucket: "{{ vm_utils_terraform_bucket | default('tfstates') }}"
+    # FORCE RECONFIGURE
+    # Defaults to false
+    # Can be overwritten with vm_utils_force_reconfigure or force_reconfigure
+    _vm_utils_force_reconfigure: "{{ force_reconfigure | default(_force_reconfigure) }}"
+    _force_reconfigure: "{{ vm_utils_force_reconfigure | default(false) }}"
+    # MIGRATE STATE
+    # Defaults to false
+    # Can be overwritten with vm_utils_migrate_state or migrate_state
+    _vm_utils_migrate_state: "{{ migrate_state | default(_migrate_state) }}"
+    _migrate_state: "{{ vm_utils_migrate_state | default(true) }}"
+  handlers:
+    - name: Reconfigure/Migrate Terraform in every project
+      ansible.builtin.command:
+        cmd: terraform init {% if _vm_utils_migrate_state %}-migrate-state{% else %}-reconfigure{% endif %}
+        chdir: "{{ item | dirname }}"
+      loop: "{{ _terraform_project_paths.files | map(attribute='path') | reject('search', '/\\.terraform') | list }}"
+      when: _terraform_project_paths.matched > 0
+      changed_when: true
+
+  tasks:
+    - name: Find Terraform project paths
+      ansible.builtin.find:
+        paths: "{{ vm_utils_terraform_project_paths | default([lookup('env', 'PWD') + '/terraform']) }}"
+        recurse: true
+        patterns: '{{ _vm_utils_terraform_search_file }}'
+        hidden: false
+      register: _terraform_project_paths
+
+    - name: Return Terraform project paths
+      ansible.builtin.debug:
+        msg: "{{ _terraform_project_paths.files | map(attribute='path') | list }}"
+
+    - name: Return Terraform project paths without hidden directories (exclude matches of '/.terraform')
+      ansible.builtin.debug:
+        msg: "{{ _terraform_project_paths.files | map(attribute='path') | reject('search', '/\\.terraform') | list }}"
+
+    - name: Get Git remote URL for 'origin'  # noqa command-instead-of-module
+      ansible.builtin.command: git remote get-url origin
+      register: git_origin_url
+      ignore_errors: true
+      changed_when: false
+
+    - name: Fail if we are not in a Git repository
+      ansible.builtin.fail:
+        msg: |
+          Not in a Git repository
+          The Git repository origin URL is used to determine the Terraform backend key
+          This is to ensure everyone working in the same repository uses the same Terraform state
+      when: git_origin_url.rc != 0
+
+    - name: Extract path from Git remote URL
+      ansible.builtin.set_fact:
+        git_path: "{{ git_origin_url.stdout | diademiemi.git_utils.extract_git_path(omit_dot_git=True) }}"
+
+    - name: Display Git remote path
+      ansible.builtin.debug:
+        msg: "{{ git_path }}/<DIRECTORY NAME> will be used as the Terraform backend key"
+
+    - name: Debug env vars
+      ansible.builtin.debug:
+        msg: |
+          Please ensure you have the following environment variables set when using this Terraform project (including Ansible inventory):
+          AWS_ENDPOINT_URL_S3
+          AWS_ACCESS_KEY_ID
+          AWS_SECRET_ACCESS_KEY
+          AWS_REGION
+
+    - name: Place {{ _vm_utils_terraform_backend_file }} in Terraform project paths  # noqa name[template]  I hate this rule
+      ansible.builtin.copy:
+        content: |
+          terraform {
+            backend "s3" {
+              bucket = "{{ _vm_utils_terraform_bucket }}"
+              key    = "{{ git_path }}/{{ item | dirname | diademiemi.git_utils.get_relative_git_file }}/tfstate"
+
+              skip_credentials_validation = true
+              skip_metadata_api_check     = true
+              skip_region_validation      = true
+              skip_requesting_account_id  = true
+              skip_s3_checksum            = true
+              use_path_style              = true
+              insecure                    = true
+            }
+          }
+        dest: "{{ item | dirname }}/{{ _vm_utils_terraform_backend_file }}"
+        mode: '0644'
+      loop: "{{ _terraform_project_paths.files | map(attribute='path') | reject('search', '/\\.terraform') | list }}"
+      when: _terraform_project_paths.matched > 0
+      notify: Reconfigure Terraform in every project
+
+    - name: Force reconfigure Terraform in every project
+      ansible.builtin.debug:
+        msg: "Reconfiguring Terraform in every project"
+      changed_when: _vm_utils_force_reconfigure
+      when: _vm_utils_force_reconfigure
+      notify: Reconfigure Terraform in every project
+
+...

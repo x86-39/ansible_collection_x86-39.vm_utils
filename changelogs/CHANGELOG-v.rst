@@ -1,9 +1,22 @@
-=================================
-diademiemi.vm_utils Release Notes
-=================================
+==================================
+diademiemi.vm\_utils Release Notes
+==================================
 
 .. contents:: Topics
 
+v6.0.0
+======
+
+Release Summary
+---------------
+
+This release adds a new playbook terraform_remote_backend.yml and reworks terraform_inv_mgt.yml
+
+Major Changes
+-------------
+
+- Add terraform_remote_backend.yml playbook
+- Rework terraform_inv_mgt.yml playbook to place the whole file instead of modifying in place
 
 v5.1.0
 ======

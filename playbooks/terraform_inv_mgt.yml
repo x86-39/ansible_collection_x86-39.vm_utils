@@ -50,24 +50,22 @@
     _vm_utils_terraform_workspace: "{{ workspace | default(_workspace) }}"
     _workspace: "{{ vm_utils_terraform_workspace | default(_vm_utils_terraform_provider + '-' + _vm_utils_terraform_env) }}"
   tasks:
-    - name: "Replace terraform_path in inventory file"
-      ansible.builtin.lineinfile:
-        path: "{{ lookup('env', 'PWD') + '/inventories/' + _vm_utils_terraform_inventory_name + '/terraform.yml' }}"  # noqa: jinja[spacing]
-        regexp: '^project_path:'
-        line: "project_path: \"{{ _vm_utils_terraform_project_path | regex_replace(lookup('env', 'PWD'), '.') }}\""  # Make it a relative path
-      delegate_to: localhost
-      when:
-        - _vm_utils_terraform_project_path is defined
-        - _vm_utils_terraform_inventory_name is defined
-
-    - name: "Replace workspace in inventory file"
-      ansible.builtin.lineinfile:
-        path: "{{ lookup('env', 'PWD') + '/inventories/' + _vm_utils_terraform_inventory_name + '/terraform.yml' }}"  # noqa: jinja[spacing]
-        regexp: '^workspace:'
-        line: "workspace: \"{{ _vm_utils_terraform_workspace }}\""  # Make it a relative path
+    - name: "Create terraform inventory file"
+      ansible.builtin.copy:
+        content: |
+          ---
+          plugin: cloud.terraform.terraform_provider
+          project_path: "{{ _vm_utils_terraform_project_path | regex_replace(lookup('env', 'PWD'), '.') }}"
+          state_file: ""
+          search_child_modules: true
+          workspace: "{{ _vm_utils_terraform_workspace }}"
+          ...
+        dest: "{{ _vm_utils_terraform_inventory_path }}"
+        mode: '0644'
       delegate_to: localhost
       when:
         - _vm_utils_terraform_project_path is defined
         - _vm_utils_terraform_inventory_name is defined
         - _vm_utils_terraform_workspace is defined
+
 ...
