@@ -3,7 +3,7 @@ collections:
   - name: cloud.terraform
     type: git
     source: https://github.com/diademiemi/cloud.terraform.git
-  - name: diademiemi.git
+  - name: diademiemi.git_utils
 
 roles: []
 ...
