@@ -12,6 +12,12 @@
 # bucket - vm_utils_terraform_bucket
 # force_reconfigure - vm_utils_force_reconfigure
 # migrate_state - vm_utils_migrate_state
+## ENV VARS
+# VM_UTILS_TERRAFORM_SEARCH_FILE - vm_utils_terraform_search_file
+# VM_UTILS_TERRAFORM_BACKEND_FILE - vm_utils_terraform_backend_file
+# VM_UTILS_TERRAFORM_BUCKET - vm_utils_terraform_bucket
+# VM_UTILS_FORCE_RECONFIGURE - vm_utils_force_reconfigure
+# VM_UTILS_MIGRATE_STATE - vm_utils_migrate_state
 ##
 # Please read the vars in the first play for more documentation
 
@@ -22,27 +28,41 @@
     # SEARCH FILE
     # Defaults to provider.tf
     # Can be overwritten with vm_utils_terraform_search_file or search_file
-    _vm_utils_terraform_search_file: "{{ search_file | default(_search_file) }}"
+    _vm_utils_terraform_search_file: "{{ search_file | default(_env_search_file) }}"
+    _env_search_file: "{% if lookup('env', 'VM_UTILS_TERRAFORM_SEARCH_FILE') != '' %}\
+      {{ lookup('env', 'VM_UTILS_TERRAFORM_SEARCH_FILE') }}{% else %}{{ _search_file }}{% endif %}"
     _search_file: "{{ vm_utils_terraform_search_file | default('provider.tf') }}"
+
     # BACKEND FILE
     # Defaults to backend.tf
     # Can be overwritten with vm_utils_terraform_backend_file or backend_file
-    _vm_utils_terraform_backend_file: "{{ backend_file | default(_backend_file) }}"
+    _vm_utils_terraform_backend_file: "{{ backend_file | default(_env_backend_file) }}"
+    _env_backend_file: "{% if lookup('env', 'VM_UTILS_TERRAFORM_BACKEND_FILE') != '' %}\
+      {{ lookup('env', 'VM_UTILS_TERRAFORM_BACKEND_FILE') }}{% else %}{{ _backend_file }}{% endif %}"
     _backend_file: "{{ vm_utils_terraform_backend_file | default('backend.tf') }}"
+
     # BUCKET
     # Defaults to tfstates
     # Can be overwritten with vm_utils_terraform_bucket or bucket
-    _vm_utils_terraform_bucket: "{{ bucket | default(_bucket) }}"
+    _vm_utils_terraform_bucket: "{{ bucket | default(_env_bucket) }}"
+    _env_bucket: "{% if lookup('env', 'VM_UTILS_TERRAFORM_BUCKET') != '' %}\
+      {{ lookup('env', 'VM_UTILS_TERRAFORM_BUCKET') }}{% else %}{{ _bucket }}{% endif %}"
     _bucket: "{{ vm_utils_terraform_bucket | default('tfstates') }}"
+
     # FORCE RECONFIGURE
     # Defaults to false
     # Can be overwritten with vm_utils_force_reconfigure or force_reconfigure
-    _vm_utils_force_reconfigure: "{{ force_reconfigure | default(_force_reconfigure) }}"
+    _vm_utils_force_reconfigure: "{{ force_reconfigure | default(_env_force_reconfigure) }}"
+    _env_force_reconfigure: "{% if lookup('env', 'VM_UTILS_FORCE_RECONFIGURE') != '' %}\
+      {{ lookup('env', 'VM_UTILS_FORCE_RECONFIGURE') | bool }}{% else %}{{ _force_reconfigure }}{% endif %}"
     _force_reconfigure: "{{ vm_utils_force_reconfigure | default(false) }}"
+
     # MIGRATE STATE
-    # Defaults to false
+    # Defaults to true
     # Can be overwritten with vm_utils_migrate_state or migrate_state
-    _vm_utils_migrate_state: "{{ migrate_state | default(_migrate_state) }}"
+    _vm_utils_migrate_state: "{{ migrate_state | default(_env_migrate_state) }}"
+    _env_migrate_state: "{% if lookup('env', 'VM_UTILS_MIGRATE_STATE') != '' %}\
+      {{ lookup('env', 'VM_UTILS_MIGRATE_STATE') | bool  }}{% else %}{{ _migrate_state }}{% endif %}"
     _migrate_state: "{{ vm_utils_migrate_state | default(true) }}"
   handlers:
     - name: Reconfigure/Migrate Terraform in every project

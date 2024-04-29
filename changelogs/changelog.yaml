@@ -103,3 +103,11 @@ releases:
     fragments:
     - fix.yml
     release_date: '2024-04-29'
+  7.0.0:
+    changes:
+      major_changes:
+      - Allow getting variables from env vars for certain options in playbooks. Check
+        playbook documentation for more information.
+    fragments:
+    - var.yml
+    release_date: '2024-04-29'

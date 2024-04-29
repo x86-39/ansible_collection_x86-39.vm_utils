@@ -4,6 +4,14 @@ diademiemi.vm\_utils Release Notes
 
 .. contents:: Topics
 
+v7.0.0
+======
+
+Major Changes
+-------------
+
+- Allow getting variables from env vars for certain options in playbooks. Check playbook documentation for more information.
+
 v6.1.0
 ======
 

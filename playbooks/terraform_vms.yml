@@ -3,7 +3,7 @@
 # vm_utils_terraform_state (alias=state) - The state of the VMs.
 # "create" creates the VMs, "recreate" removes the VMs and creates them again, "destroy" removes the VMs and aborts the play. Default: "create"
 # vm_utils_terraform_project_path - The path to the Terraform project. Default: "{{ lookup('env', 'PWD') + '/terraform' }}"
-# vm_utils_terraform_vars_files - The path to the Terraform variables files. Default: "{{ lookup('env', 'PWD') + '/terraform/vars/vars.tfvars' }}"
+# vm_utils_terraform_vars_files - The path to the Terraform variables files. Default: "{{ lookup('env', 'PWD') + '/tfvars/vars.tfvars' }}"
 # vm_utils_terraform_env (alias=env) - The environment. Default: "demo"
 # vm_utils_terraform_provider (alias=provider) - The provider. Default: "libvirt"
 # vm_utils_terraform_workspace (alias=workspace) - The Terraform workspace. Default: "provider-env"
@@ -15,7 +15,13 @@
 # provider - vm_utils_terraform_provider
 # workspace - vm_utils_terraform_workspace
 # wait_for_connection - vm_utils_terraform_wait_for_connection
-##
+## ENV VARS
+# VM_UTILS_TERRAFORM_STATE - vm_utils_terraform_state
+# VM_UTILS_TERRAFORM_ENV - vm_utils_terraform_env
+# VM_UTILS_TERRAFORM_PROVIDER - vm_utils_terraform_provider
+# VM_UTILS_TERRAFORM_PROJECT_PATH - vm_utils_terraform_project_path
+# VM_UTILS_TERRAFORM_VARS_FILES - vm_utils_terraform_vars_files
+# VM_UTILS_TERRAFORM_WORKSPACE - vm_utils_terraform_workspace
 ## DEPENDENCIES
 # Provider can be dynamically set in diademiemi.vm_utils.terraform_inv_mgt
 # If done in the same play, vars carry over to this playbook.
@@ -25,37 +31,55 @@
 - name: Create / Destroy VMs
   hosts: localhost
   vars:
-    # Both "vm_utils_terraform_state" or just "state" can be used to set the state of the VMs
     # STATE
     # Defaults to create. Can be set to recreate or destroy
     # Can be overwritten with vm_utils_terraform_state or state
-    _vm_utils_terraform_state: "{{ state | default(_state) }}"
+    _vm_utils_terraform_state: "{{ state | default(_env_state) }}"
+    _env_state: "{% if lookup('env', 'VM_UTILS_TERRAFORM_STATE') != '' %}\
+      {{ lookup('env', 'VM_UTILS_TERRAFORM_STATE') }}{% else %}{{ _state }}{% endif %}"
     _state: "{{ vm_utils_terraform_state | default('create') }}"
+
     # ENVIRONMENT
     # Defaults to demo
     # Can be overwritten with vm_utils_terraform_env or env
-    _vm_utils_terraform_env: "{{ env | default(_env) }}"
+    _vm_utils_terraform_env: "{{ env | default(_env_env) }}"
+    _env_env: "{% if lookup('env', 'VM_UTILS_TERRAFORM_ENV') != '' %}\
+      {{ lookup('env', 'VM_UTILS_TERRAFORM_ENV') }}{% else %}{{ _env }}{% endif %}"
     _env: "{{ vm_utils_terraform_env | default('demo') }}"
+
     # PROVIDER
     # Defaults to libvirt
     # Can be overwritten with vm_utils_terraform_provider or provider
-    _vm_utils_terraform_provider: "{{ provider | default(_provider) }}"
+    _vm_utils_terraform_provider: "{{ provider | default(_env_provider) }}"
+    _env_provider: "{% if lookup('env', 'VM_UTILS_TERRAFORM_PROVIDER') != '' %}\
+      {{ lookup('env', 'VM_UTILS_TERRAFORM_PROVIDER') }}{% else %}{{ _provider }}{% endif %}"
     _provider: "{{ vm_utils_terraform_provider | default('libvirt') }}"
+
     # PROJECT PATH
     # Defaults to ${PWD}/terraform/infra/provider/, e.g. ./terraform/infra/libvirt/
     # Can be overwritten with vm_utils_terraform_project_path
-    _vm_utils_terraform_project_path: "{{ vm_utils_terraform_project_path | default(_project_path) }}"
+    _vm_utils_terraform_project_path: "{{ vm_utils_terraform_project_path | default(_env_project_path) }}"
+    _env_project_path: "{% if lookup('env', 'VM_UTILS_TERRAFORM_PROJECT_PATH') != '' %}\
+      {{ lookup('env', 'VM_UTILS_TERRAFORM_PROJECT_PATH') }}{% else %}\
+      {{ _project_path }}{% endif %}"
     _project_path: "{{ lookup('env', 'PWD') + '/terraform/infra/' + _vm_utils_terraform_provider + '/' }}"
+
     # VARIABLES FILES
-    # Defaults to ${PWD}/terraform/vars/${ENV}.tfvars, e.g. ./terraform/vars/dev.tfvars
+    # Defaults to ${PWD}/tfvars/infra/provider/env.tfvars, e.g. ./tfvars/infra/libvirt/dev.tfvars
     # Can be overwritten with vm_utils_terraform_vars_files
-    _vm_utils_terraform_vars_files: "{{ vm_utils_terraform_vars_files | default(_vars_files) }}"
+    _vm_utils_terraform_vars_files: "{{ vm_utils_terraform_vars_files | default(_env_vars_files) }}"
+    _env_vars_files: "{% if lookup('env', 'VM_UTILS_TERRAFORM_VARS_FILES') != '' %}\
+      {{ lookup('env', 'VM_UTILS_TERRAFORM_VARS_FILES') }}{% else %}\
+      {{ _vars_files }}{% endif %}"
     _vars_files: "{{ lookup('env', 'PWD') + '/tfvars/infra/' +
       _vm_utils_terraform_provider + '/' + _vm_utils_terraform_env + '.tfvars' }}"
+
     # WORKSPACE
     # Defaults to provider-env, e.g. libvirt-dev
     # Can be overwritten with vm_utils_terraform_workspace or workspace
-    _vm_utils_terraform_workspace: "{{ workspace | default(_workspace) }}"
+    _vm_utils_terraform_workspace: "{{ workspace | default(_env_workspace) }}"
+    _env_workspace: "{% if lookup('env', 'VM_UTILS_TERRAFORM_WORKSPACE') != '' %}\
+      {{ lookup('env', 'VM_UTILS_TERRAFORM_WORKSPACE') }}{% else %}{{ _workspace }}{% endif %}"
     _workspace: "{{ vm_utils_terraform_workspace | default(_vm_utils_terraform_provider~'-'~_vm_utils_terraform_env) }}"
   tasks:
     ###
