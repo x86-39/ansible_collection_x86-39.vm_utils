@@ -122,13 +122,13 @@
         mode: '0644'
       loop: "{{ _terraform_project_paths.files | map(attribute='path') | reject('search', '/\\.terraform') | list }}"
       when: _terraform_project_paths.matched > 0
-      notify: Reconfigure Terraform in every project
+      notify: Reconfigure/Migrate Terraform in every project
 
     - name: Force reconfigure Terraform in every project
       ansible.builtin.debug:
         msg: "Reconfiguring Terraform in every project"
       changed_when: _vm_utils_force_reconfigure
       when: _vm_utils_force_reconfigure
-      notify: Reconfigure Terraform in every project
+      notify: Reconfigure/Migrate Terraform in every project
 
 ...

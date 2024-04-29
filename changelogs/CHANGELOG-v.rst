@@ -4,6 +4,14 @@ diademiemi.vm\_utils Release Notes
 
 .. contents:: Topics
 
+v6.1.0
+======
+
+Bugfixes
+--------
+
+- Fix handler in terraform_remote_backend.yml
+
 v6.0.0
 ======
 

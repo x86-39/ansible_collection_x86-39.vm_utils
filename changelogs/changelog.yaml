@@ -96,3 +96,10 @@ releases:
     fragments:
     - major.yml
     release_date: '2024-04-29'
+  6.1.0:
+    changes:
+      bugfixes:
+      - Fix handler in terraform_remote_backend.yml
+    fragments:
+    - fix.yml
+    release_date: '2024-04-29'
