@@ -4,6 +4,19 @@ diademiemi.vm\_utils Release Notes
 
 .. contents:: Topics
 
+v8.0.0
+======
+
+Release Summary
+---------------
+
+Overhaul terraform_remote_backend.yml
+
+Major Changes
+-------------
+
+- Add new variables to terraform_remote_backend.yml
+
 v7.0.0
 ======
 

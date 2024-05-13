@@ -22,7 +22,7 @@
 # VM_UTILS_TERRAFORM_INVENTORY_NAME - vm_utils_terraform_inventory_name
 ##
 
-- name: "Terraform | Deployment"
+- name: Set Ansible inventory standardised configuration
   hosts: localhost
   gather_facts: false
   vars:

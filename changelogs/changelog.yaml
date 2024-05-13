@@ -111,3 +111,11 @@ releases:
     fragments:
     - var.yml
     release_date: '2024-04-29'
+  8.0.0:
+    changes:
+      major_changes:
+      - Add new variables to terraform_remote_backend.yml
+      release_summary: Overhaul terraform_remote_backend.yml
+    fragments:
+    - 8.yml
+    release_date: '2024-05-13'

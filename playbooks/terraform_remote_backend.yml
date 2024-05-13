@@ -1,12 +1,16 @@
 ---
 ## VARS
+# vm_utils_change_remote_backend - Change remote state configuration (playbook only runs when this is true). Default: false
+# vm_utils_enable_remote_backend - Enable remote state. Default: true
 # vm_utils_terraform_project_paths - List of paths to Terraform projects to search. Default: [lookup('env', 'PWD') + '/terraform']
 # vm_utils_terraform_search_file - The file to search for in the Terraform project. Default: "provider.tf"
 # vm_utils_terraform_backend_file - The file to place the Terraform backend configuration. Default: "backend.tf"
 # vm_utils_terraform_bucket - The bucket to store the Terraform state. Default: "tfstates"
 # vm_utils_force_reconfigure - Force reconfigure Terraform. Default: false
-# vm_utils_migrate_state - Migrate Terraform state upon changed configuration. Default: true
+# vm_utils_migrate_state - Migrate Terraform state upon changed configuration. Default: false
 ## SHORTCUTS
+# change_remote_backend - vm_utils_change_remote_backend
+# enable_remote_backend - vm_utils_enable_remote_backend
 # search_file - vm_utils_terraform_search_file
 # backend_file - vm_utils_terraform_backend_file
 # bucket - vm_utils_terraform_bucket
@@ -21,10 +25,25 @@
 ##
 # Please read the vars in the first play for more documentation
 
-- name: Set DNS entries with standardised Terraform
+- name: Set remote backend standardised configuration
   hosts: localhost
   gather_facts: false
   vars:
+    # CHANGE REMOTE BACKEND
+    # Defaults to false
+    # Can be overwritten with vm_utils_change_remote_backend or change_remote_backend
+    _vm_utils_change_remote_backend: "{{ change_remote_backend | default(_env_change_remote_backend) }}"
+    _env_change_remote_backend: "{% if lookup('env', 'VM_UTILS_CHANGE_REMOTE_BACKEND') != '' %}\
+      {{ lookup('env', 'VM_UTILS_CHANGE_REMOTE_BACKEND') | bool }}{% else %}{{ _change_remote_backend }}{% endif %}"
+    _change_remote_backend: "{{ vm_utils_change_remote_backend | default(false) }}"
+    # ENABLE REMOTE STATE
+    # Defaults to true
+    # Can be overwritten with vm_utils_enable_remote_backend or enable_remote_backend
+    _vm_utils_enable_remote_backend: "{{ enable_remote_backend | default(_env_enable_remote_backend) }}"
+    _env_enable_remote_backend: "{% if lookup('env', 'VM_UTILS_ENABLE_remote_backend') != '' %}\
+      {{ lookup('env', 'VM_UTILS_ENABLE_remote_backend') | bool }}{% else %}{{ _enable_remote_backend }}{% endif %}"
+    _enable_remote_backend: "{{ vm_utils_enable_remote_backend | default(true) }}"
+
     # SEARCH FILE
     # Defaults to provider.tf
     # Can be overwritten with vm_utils_terraform_search_file or search_file
@@ -58,97 +77,145 @@
     _force_reconfigure: "{{ vm_utils_force_reconfigure | default(false) }}"
 
     # MIGRATE STATE
-    # Defaults to true
+    # Defaults to false
     # Can be overwritten with vm_utils_migrate_state or migrate_state
     _vm_utils_migrate_state: "{{ migrate_state | default(_env_migrate_state) }}"
     _env_migrate_state: "{% if lookup('env', 'VM_UTILS_MIGRATE_STATE') != '' %}\
       {{ lookup('env', 'VM_UTILS_MIGRATE_STATE') | bool  }}{% else %}{{ _migrate_state }}{% endif %}"
-    _migrate_state: "{{ vm_utils_migrate_state | default(true) }}"
+    _migrate_state: "{{ vm_utils_migrate_state | default(false) }}"
   handlers:
     - name: Reconfigure/Migrate Terraform in every project
       ansible.builtin.command:
-        cmd: terraform init {% if _vm_utils_migrate_state %}-migrate-state{% else %}-reconfigure{% endif %}
+        cmd: terraform init {% if _vm_utils_migrate_state | bool %}-migrate-state{% else %}-reconfigure{% endif %}
+      args:
         chdir: "{{ item | dirname }}"
       loop: "{{ _terraform_project_paths.files | map(attribute='path') | reject('search', '/\\.terraform') | list }}"
       when: _terraform_project_paths.matched > 0
       changed_when: true
 
   tasks:
-    - name: Find Terraform project paths
-      ansible.builtin.find:
-        paths: "{{ vm_utils_terraform_project_paths | default([lookup('env', 'PWD') + '/terraform']) }}"
-        recurse: true
-        patterns: '{{ _vm_utils_terraform_search_file }}'
-        hidden: false
-      register: _terraform_project_paths
-
-    - name: Return Terraform project paths
-      ansible.builtin.debug:
-        msg: "{{ _terraform_project_paths.files | map(attribute='path') | list }}"
-
-    - name: Return Terraform project paths without hidden directories (exclude matches of '/.terraform')
-      ansible.builtin.debug:
-        msg: "{{ _terraform_project_paths.files | map(attribute='path') | reject('search', '/\\.terraform') | list }}"
-
-    - name: Get Git remote URL for 'origin'  # noqa command-instead-of-module
-      ansible.builtin.command: git remote get-url origin
-      register: git_origin_url
-      ignore_errors: true
-      changed_when: false
-
-    - name: Fail if we are not in a Git repository
-      ansible.builtin.fail:
-        msg: |
-          Not in a Git repository
-          The Git repository origin URL is used to determine the Terraform backend key
-          This is to ensure everyone working in the same repository uses the same Terraform state
-      when: git_origin_url.rc != 0
-
-    - name: Extract path from Git remote URL
-      ansible.builtin.set_fact:
-        git_path: "{{ git_origin_url.stdout | diademiemi.git_utils.extract_git_path(omit_dot_git=True) }}"
-
-    - name: Display Git remote path
-      ansible.builtin.debug:
-        msg: "{{ git_path }}/<DIRECTORY NAME> will be used as the Terraform backend key"
-
-    - name: Debug env vars
+    - name: Show information
       ansible.builtin.debug:
         msg: |
-          Please ensure you have the following environment variables set when using this Terraform project (including Ansible inventory):
-          AWS_ENDPOINT_URL_S3
-          AWS_ACCESS_KEY_ID
-          AWS_SECRET_ACCESS_KEY
-          AWS_REGION
+          {% if not _vm_utils_change_remote_backend | bool %}
+          Not changing remote backend
+          {% else %}
+          Changing remote backend
+          {% endif %}
 
-    - name: Place {{ _vm_utils_terraform_backend_file }} in Terraform project paths  # noqa name[template]  I hate this rule
-      ansible.builtin.copy:
-        content: |
-          terraform {
-            backend "s3" {
-              bucket = "{{ _vm_utils_terraform_bucket }}"
-              key    = "{{ git_path }}/{{ item | dirname | diademiemi.git_utils.get_relative_git_file }}/tfstate"
+    - name: Change remote backend
+      when: _vm_utils_change_remote_backend | bool
+      block:
+        - name: Find Terraform project paths
+          ansible.builtin.find:
+            paths: "{{ vm_utils_terraform_project_paths | default([lookup('env', 'PWD') + '/terraform']) }}"
+            recurse: true
+            patterns: '{{ _vm_utils_terraform_search_file }}'
+            hidden: false
+          register: _terraform_project_paths
 
-              skip_credentials_validation = true
-              skip_metadata_api_check     = true
-              skip_region_validation      = true
-              skip_requesting_account_id  = true
-              skip_s3_checksum            = true
-              use_path_style              = true
-              insecure                    = true
-            }
-          }
-        dest: "{{ item | dirname }}/{{ _vm_utils_terraform_backend_file }}"
-        mode: '0644'
-      loop: "{{ _terraform_project_paths.files | map(attribute='path') | reject('search', '/\\.terraform') | list }}"
-      when: _terraform_project_paths.matched > 0
-      notify: Reconfigure/Migrate Terraform in every project
+        - name: Return Terraform project paths without hidden directories (exclude matches of '/.terraform')
+          ansible.builtin.debug:
+            msg: "{{ _terraform_project_paths.files | map(attribute='path') | reject('search', '/\\.terraform') | list }}"
 
-    - name: Force reconfigure Terraform in every project
-      ansible.builtin.debug:
-        msg: "Reconfiguring Terraform in every project"
-      changed_when: _vm_utils_force_reconfigure
-      when: _vm_utils_force_reconfigure
-      notify: Reconfigure/Migrate Terraform in every project
+        - name: Prompt for confirmation
+          ansible.builtin.pause:
+            prompt: |
+              The following Terraform projects will have their backends configured:
+              {% for dir in _terraform_project_paths.files | map(attribute='path') | reject('search', '/\\.terraform') | list %}
+              - {{ dir | dirname }}
+              {% endfor %}
+              Are you sure you want to continue? (YES/NO)
+              The file matched is '{{ _vm_utils_terraform_search_file }}'
+              A file called '{{ _vm_utils_terraform_backend_file }}' will be placed in the same directory as the matched file
+              The bucket '{{ _vm_utils_terraform_bucket }}' will be used to store the Terraform state
+              The key will be the relative path to the matched file and including the Git repository name (e.g. `my-user/my-repo/terraform_dir/project/tfstate`)
+              Terraform state will be migrated: {{ _vm_utils_migrate_state }}
+              Force reconfigure Terraform: {{ _vm_utils_force_reconfigure }}
+          register: _confirmation
+          run_once: true
+          delegate_to: localhost
+          when: _confirmation is not defined
+
+        - name: Fail if confirmation is not 'YES'
+          ansible.builtin.fail:
+            msg: "Confirmation not 'YES'"
+          when:
+            - _confirmation.user_input != "YES"
+
+        - name: Place project backends
+          when: _vm_utils_enable_remote_backend | bool
+          block:
+            - name: Get Git remote URL for 'origin'  # noqa command-instead-of-module
+              ansible.builtin.command: git remote get-url origin
+              register: git_origin_url
+              ignore_errors: true
+              changed_when: false
+
+            - name: Fail if we are not in a Git repository
+              ansible.builtin.fail:
+                msg: |
+                  Not in a Git repository
+                  The Git repository origin URL is used to determine the Terraform backend key
+                  This is to ensure everyone working in the same repository uses the same Terraform state
+              when: git_origin_url.rc != 0
+
+            - name: Extract path from Git remote URL
+              ansible.builtin.set_fact:
+                git_path: "{{ git_origin_url.stdout | diademiemi.git_utils.extract_git_path(omit_dot_git=True) }}"
+
+            - name: Display Git remote path
+              ansible.builtin.debug:
+                msg: "{{ git_path }}/<DIRECTORY NAME> will be used as the Terraform backend key"
+
+            - name: Debug env vars
+              ansible.builtin.debug:
+                msg: |
+                  Please ensure you have the following environment variables set when using this Terraform project (including Ansible inventory):
+                  AWS_ENDPOINT_URL_S3
+                  AWS_ACCESS_KEY_ID
+                  AWS_SECRET_ACCESS_KEY
+                  AWS_REGION
+
+            - name: Place {{ _vm_utils_terraform_backend_file }} in Terraform project paths  # noqa name[template]  I hate this rule
+              ansible.builtin.copy:
+                content: |
+                  terraform {
+                    backend "s3" {
+                      bucket = "{{ _vm_utils_terraform_bucket }}"
+                      key    = "{{ git_path }}/{{ item | dirname | diademiemi.git_utils.get_relative_git_file }}/tfstate"
+
+                      skip_credentials_validation = true
+                      skip_metadata_api_check     = true
+                      skip_region_validation      = true
+                      skip_requesting_account_id  = true
+                      skip_s3_checksum            = true
+                      use_path_style              = true
+                      insecure                    = true
+                    }
+                  }
+                dest: "{{ item | dirname }}/{{ _vm_utils_terraform_backend_file }}"
+                mode: '0644'
+              loop: "{{ _terraform_project_paths.files | map(attribute='path') | reject('search', '/\\.terraform') | list }}"
+              when: _terraform_project_paths.matched > 0
+              notify: Reconfigure/Migrate Terraform in every project
+
+        - name: Remove project backends
+          when: not _vm_utils_enable_remote_backend | bool
+          block:
+            - name: Remove {{ _vm_utils_terraform_backend_file }} in Terraform project paths  # noqa name[template]  I hate this rule
+              ansible.builtin.file:
+                dest: "{{ item | dirname }}/{{ _vm_utils_terraform_backend_file }}"
+                state: absent
+              loop: "{{ _terraform_project_paths.files | map(attribute='path') | reject('search', '/\\.terraform') | list }}"
+              when: _terraform_project_paths.matched > 0
+              notify: Reconfigure/Migrate Terraform in every project
+
+        - name: Force reconfigure Terraform in every project
+          ansible.builtin.debug:
+            msg: "Reconfiguring Terraform in every project"
+          changed_when: _vm_utils_force_reconfigure
+          when: _vm_utils_force_reconfigure
+          notify: Reconfigure/Migrate Terraform in every project
 
 ...
