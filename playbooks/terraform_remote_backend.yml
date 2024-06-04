@@ -85,8 +85,9 @@
     _migrate_state: "{{ vm_utils_migrate_state | default(false) }}"
   handlers:
     - name: Reconfigure/Migrate Terraform in every project
-      ansible.builtin.command:
-        cmd: terraform init {% if _vm_utils_migrate_state | bool %}-migrate-state{% else %}-reconfigure{% endif %}
+      ansible.builtin.shell: |
+        set -o pipefail
+        echo 'yes' | terraform init {% if _vm_utils_migrate_state | bool %}-migrate-state{% else %}-reconfigure{% endif %}
       args:
         chdir: "{{ item | dirname }}"
       loop: "{{ _terraform_project_paths.files | map(attribute='path') | reject('search', '/\\.terraform') | list }}"

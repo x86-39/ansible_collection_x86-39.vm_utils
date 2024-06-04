@@ -4,6 +4,14 @@ diademiemi.vm\_utils Release Notes
 
 .. contents:: Topics
 
+v8.0.1
+======
+
+Bugfixes
+--------
+
+- Fix changing remote backend
+
 v8.0.0
 ======
 

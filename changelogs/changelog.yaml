@@ -119,3 +119,10 @@ releases:
     fragments:
     - 8.yml
     release_date: '2024-05-13'
+  8.0.1:
+    changes:
+      bugfixes:
+      - Fix changing remote backend
+    fragments:
+    - te.yml
+    release_date: '2024-06-04'
