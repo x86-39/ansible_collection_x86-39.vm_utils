@@ -1,128 +1,137 @@
+---
 ancestor: null
 releases:
   1.0.0:
     changes:
       major_changes:
-      - add terraform_vms playbook
-      - add vyos_qcow2_image role
+        - add terraform_vms playbook
+        - add vyos_qcow2_image role
       release_summary: initial release
     fragments:
-    - main.yml
+      - main.yml
     release_date: '2023-11-02'
   2.0.0:
     changes:
       major_changes:
-      - Added new playbook terraform_dns for changing DNS records through Ansible
-        w/ Terraform
-      - Added new playbook terraform_inv_mgt for changing inventory sources
-      - Rewrote terraform_vms playbook, CHECK NEW DOCUMENTATION
+        - Added new playbook terraform_dns for changing DNS records through Ansible
+          w/ Terraform
+        - Added new playbook terraform_inv_mgt for changing inventory sources
+        - Rewrote terraform_vms playbook, CHECK NEW DOCUMENTATION
       release_summary: This release is a major overhaul of the terraform_vms playbook.
         It is now much more flexible and can be used to create and destroy VMs in
         a much more dynamic way.
     fragments:
-    - changelog.yml
+      - changelog.yml
     release_date: '2023-12-22'
   3.0.0:
     changes:
       breaking_changes:
-      - now requires my fork of cloud.terraform collection
-      - workspace now defaults to provider-env, instead of "default"
+        - now requires my fork of cloud.terraform collection
+        - workspace now defaults to provider-env, instead of "default"
       major_changes:
-      - add workspace support in terraform playbooks
+        - add workspace support in terraform playbooks
       release_summary: This release adds workspace support to terraform playbooks.
         It also requires my fork of cloud.terraform collection.
     fragments:
-    - workspace.yml
+      - workspace.yml
     release_date: '2023-12-28'
   3.1.0:
     changes:
       minor_changes:
-      - Make inventory_path overridable in terraform_inv_mgt
-      - Update README.md
+        - Make inventory_path overridable in terraform_inv_mgt
+        - Update README.md
       release_summary: Minor changes to terraform_inv_mgt
     fragments:
-    - minor.yaml
+      - minor.yaml
     release_date: '2023-12-28'
   4.0.0:
     changes:
       major_changes:
-      - Add workspaces support
-      - Change variables, check documentation
+        - Add workspaces support
+        - Change variables, check documentation
       release_summary: Add workspaces support for a smaller setup footprint
     fragments:
-    - 4.yml
+      - 4.yml
     release_date: '2024-02-04'
   4.0.1:
     changes:
       bugfixes:
-      - Fix typo in vyos compile
+        - Fix typo in vyos compile
       release_summary: Fix vyos compile
     fragments:
-    - 401.yml
+      - 401.yml
     release_date: '2024-02-04'
   4.1.0:
     changes:
       bugfixes:
-      - Fix removing hostnames
+        - Fix removing hostnames
       release_summary: Fix removing hostnames
     fragments:
-    - 410.yml
+      - 410.yml
     release_date: '2024-02-04'
   5.0.0:
     changes:
       major_changes:
-      - Added new variables (check playbook docs)
-      - Changed default terraform path to /terraform/<purpose>/<provider>
-      - Changed default tfvars path to /tfvars/<purpose>/<provider>/<env>.tfvars
-      - Changed variable precedence to prefer shortcuts
+        - Added new variables (check playbook docs)
+        - Changed default terraform path to /terraform/<purpose>/<provider>
+        - Changed default tfvars path to /tfvars/<purpose>/<provider>/<env>.tfvars
+        - Changed variable precedence to prefer shortcuts
       release_summary: Complete overhaul of all playbooks
     fragments:
-    - major.yml
+      - major.yml
     release_date: '2024-04-09'
   5.1.0:
     changes:
       release_summary: Fix handling for subdomains for /etc/hosts
     fragments:
-    - minor.yml
+      - minor.yml
     release_date: '2024-04-09'
   6.0.0:
     changes:
       major_changes:
-      - Add terraform_remote_backend.yml playbook
-      - Rework terraform_inv_mgt.yml playbook to place the whole file instead of modifying
-        in place
+        - Add terraform_remote_backend.yml playbook
+        - Rework terraform_inv_mgt.yml playbook to place the whole file instead of
+          modifying in place
       release_summary: This release adds a new playbook terraform_remote_backend.yml
         and reworks terraform_inv_mgt.yml
     fragments:
-    - major.yml
+      - major.yml
     release_date: '2024-04-29'
   6.1.0:
     changes:
       bugfixes:
-      - Fix handler in terraform_remote_backend.yml
+        - Fix handler in terraform_remote_backend.yml
     fragments:
-    - fix.yml
+      - fix.yml
     release_date: '2024-04-29'
   7.0.0:
     changes:
       major_changes:
-      - Allow getting variables from env vars for certain options in playbooks. Check
-        playbook documentation for more information.
+        - Allow getting variables from env vars for certain options in playbooks.
+          Check playbook documentation for more information.
     fragments:
-    - var.yml
+      - var.yml
     release_date: '2024-04-29'
   8.0.0:
     changes:
       major_changes:
-      - Add new variables to terraform_remote_backend.yml
+        - Add new variables to terraform_remote_backend.yml
       release_summary: Overhaul terraform_remote_backend.yml
     fragments:
-    - 8.yml
+      - 8.yml
     release_date: '2024-05-13'
   8.0.1:
     changes:
       bugfixes:
-      - Fix changing remote backend
+        - Fix changing remote backend
     fragments:
-    - te.yml
+      - te.yml
     release_date: '2024-06-04'
+  8.1.0:
+    changes:
+      major_changes:
+        - Move repo to github.com/x86-39
+      release_summary: 'New namespace: x86_39'
+    fragments:
+      - frag.yml
+    release_date: '2025-05-16'

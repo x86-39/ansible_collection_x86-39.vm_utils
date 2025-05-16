@@ -1,8 +1,21 @@
-==================================
-diademiemi.vm\_utils Release Notes
-==================================
+===============================
+x86\_39.vm\_utils Release Notes
+===============================
 
 .. contents:: Topics
+
+v8.1.0
+======
+
+Release Summary
+---------------
+
+New namespace: x86_39
+
+Major Changes
+-------------
+
+- Move repo to github.com/x86-39
 
 v8.0.1
 ======
