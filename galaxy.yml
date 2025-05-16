@@ -2,7 +2,7 @@
 # The namespace of the collection. This can be a company/brand/organization or product namespace under which all
 # content lives. May only contain alphanumeric lowercase characters and underscores. Namespaces cannot start with
 # underscores or numbers and cannot contain consecutive underscores
-namespace: diademiemi
+namespace: x86-39
 
 # The name of the collection. Has the same character restrictions as 'namespace'
 name: vm_utils
@@ -16,7 +16,7 @@ readme: README.md
 # A list of the collection's content authors. Can be just the name or in the format 'Full Name <email> (url)
 # @nicks:irc/im.site#channel'
 authors:
-  - diademiemi <emilia@diademiemi.me>
+  - Jasmijn Emilia Rosalina Knoope (@x86-39) <x86-39@39.systems>
 
 
 ### OPTIONAL but strongly recommended
@@ -44,16 +44,16 @@ tags:
 dependencies: {}
 
 # The URL of the originating SCM repository
-repository: https://github.com/diademiemi/ansible_collection_diademiemi.vm_utils
+repository: https://github.com/x86-39/ansible_collection_x86-39.vm_utils
 
 # The URL to any online docs
-documentation: https://github.com/diademiemi/ansible_collection_diademiemi.vm_utils
+documentation: https://github.com/x86-39/ansible_collection_x86-39.vm_utils
 
 # The URL to the homepage of the collection/project
-homepage: https://github.com/diademiemi/ansible_collection_diademiemi.vm_utils
+homepage: https://github.com/x86-39/ansible_collection_x86-39.vm_utils
 
 # The URL to the collection issue tracker
-issues: https://github.com/diademiemi/ansible_collection_diademiemi.vm_utils/issues
+issues: https://github.com/x86-39/ansible_collection_x86-39.vm_utils/issues
 
 # A list of file glob-like patterns used to filter any files or directories that should not be included in the build
 # artifact. A pattern is matched from the relative path of the file or directory of the collection directory. This
